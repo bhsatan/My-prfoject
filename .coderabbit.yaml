@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+tone_instructions: "Be direct and specific. Prioritise correctness and security risk over style."
+reviews:
+  profile: "assertive"
+  path_instructions:
+    - path: "secscan/collectors/**"
+      instructions: >
+        Flag any code that writes, modifies or deletes system state, runs
+        shell commands built from unsanitised input, opens network
+        connections, or lacks error handling. Collectors must be strictly
+        read-only and fail safely.
+    - path: "secscan/rules/**"
+      instructions: >
+        Check that each rule has a verifiable source, plain-language wording,
+        and correct fix steps for the stated OS. Flag any claim that cannot
+        be verified.
+    - path: "secscan/ai_explainer/**"
+      instructions: >
+        Verify redaction of usernames, hostnames, IPs and paths happens
+        before anything is sent, and that nothing is sent without explicit
+        user confirmation.
+    - path: "tests/**"
+      instructions: "Check that tests use mocked facts and run on any OS."

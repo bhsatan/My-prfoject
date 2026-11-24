@@ -1,0 +1,47 @@
+# Python bytecode and packaging
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Linting
+.ruff_cache/
+.mypy_cache/
+
+# SecScan report output (default output directory)
+output/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment variables / secrets (never commit these)
+.env
+.env.local
+.env.*.local
