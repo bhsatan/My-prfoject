@@ -1,0 +1,27 @@
+id: "SSH-001"
+title: "SSH root login is fully disabled"
+severity: "critical"
+applies_to:
+  - "linux"
+collector: "ssh"
+fact_path: "ssh.permit_root_login"
+condition:
+  operator: "equals"
+  expected: "no"
+why_it_matters: >
+  Allowing root login over SSH means an attacker who guesses or steals the
+  root password (or key) gets full control of your system in one step.
+  Disabling root login forces users to log in with a regular account first,
+  then use 'sudo' for admin tasks — adding a layer of protection and an
+  audit trail.
+how_to_fix:
+  linux:
+    - "Open a terminal and edit the SSH configuration: sudo nano /etc/ssh/sshd_config"
+    - "Find the line 'PermitRootLogin' and change it to: PermitRootLogin no"
+    - "If the line does not exist, add it."
+    - "Save the file and restart SSH: sudo systemctl restart sshd"
+    - "Important: make sure you have another account with sudo access before doing this, so you do not lock yourself out."
+difficulty: "easy"
+source: >
+  OpenSSH sshd_config manual – PermitRootLogin:
+  https://man.openbsd.org/sshd_config

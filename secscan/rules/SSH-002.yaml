@@ -1,0 +1,27 @@
+id: "SSH-002"
+title: "SSH password authentication is disabled"
+severity: "medium"
+applies_to:
+  - "linux"
+collector: "ssh"
+fact_path: "ssh.password_auth_enabled"
+condition:
+  operator: "equals"
+  expected: false
+why_it_matters: >
+  Password-based SSH login is vulnerable to brute-force attacks where
+  automated tools try thousands of passwords per minute. Using SSH keys
+  instead is far more secure — a key is virtually impossible to guess.
+  Disabling password authentication forces everyone to use keys.
+how_to_fix:
+  linux:
+    - "First, make sure you have set up SSH key authentication and can log in with your key."
+    - "Edit the SSH configuration: sudo nano /etc/ssh/sshd_config"
+    - "Find the line 'PasswordAuthentication' and change it to: PasswordAuthentication no"
+    - "Also set: KbdInteractiveAuthentication no"
+    - "Save the file and restart SSH: sudo systemctl restart sshd"
+    - "Warning: if you disable password auth before setting up a key, you will be locked out of SSH."
+difficulty: "medium"
+source: >
+  OpenSSH sshd_config manual – PasswordAuthentication:
+  https://man.openbsd.org/sshd_config

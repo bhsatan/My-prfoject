@@ -1,0 +1,29 @@
+id: "DISK-001"
+title: "OS drive is encrypted"
+severity: "high"
+applies_to:
+  - "windows"
+  - "linux"
+collector: "disk_encryption"
+fact_path: "disk_encryption.os_drive_encrypted"
+condition:
+  operator: "equals"
+  expected: true
+why_it_matters: >
+  Disk encryption protects your files if your computer is lost or stolen.
+  Without it, anyone who has physical access to your hard drive can read
+  all your data, including passwords saved in browsers and personal documents.
+how_to_fix:
+  windows:
+    - "Open the Start menu and type 'BitLocker', then click 'Manage BitLocker'."
+    - "Next to your C: drive, click 'Turn on BitLocker'."
+    - "Follow the wizard to choose how to unlock your drive and where to save your recovery key."
+    - "Note: BitLocker requires Windows Pro, Enterprise, or Education. Windows Home users can use 'Device Encryption' in Settings > Privacy & security > Device encryption if the hardware supports it."
+  linux:
+    - "Full disk encryption is best set up during OS installation."
+    - "If you did not enable it at install time, you can encrypt your home directory with: sudo apt install ecryptfs-utils && sudo ecryptfs-migrate-home -u YOUR_USERNAME"
+    - "For full-disk encryption on an existing system, back up all data first, then reinstall with the 'Encrypt the new installation' option checked."
+difficulty: "hard"
+source: >
+  Microsoft – BitLocker overview:
+  https://learn.microsoft.com/en-us/windows/security/operating-system-security/data-protection/bitlocker/

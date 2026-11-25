@@ -1,0 +1,31 @@
+id: "PWD-001"
+title: "Minimum password length is at least 8 characters"
+severity: "high"
+applies_to:
+  - "windows"
+  - "linux"
+collector: "password_policy"
+fact_path: "password_policy.min_length"
+condition:
+  operator: "greater_than"
+  expected: 7
+why_it_matters: >
+  Short passwords are easy for attackers to guess using automated tools.
+  A minimum length of 8 characters is the baseline recommended by NIST.
+  Longer passwords (12+) are even better, but 8 is the minimum safe floor.
+how_to_fix:
+  windows:
+    - "Press Win+R, type 'secpol.msc', and press Enter (requires admin)."
+    - "Go to Account Policies > Password Policy."
+    - "Double-click 'Minimum password length' and set it to at least 8."
+    - "Click OK and close the window."
+  linux:
+    - "Open a terminal and edit the PAM password configuration."
+    - "On Debian/Ubuntu: sudo nano /etc/pam.d/common-password"
+    - "On Fedora/RHEL: sudo nano /etc/pam.d/system-auth"
+    - "Find the line with 'pam_pwquality.so' (or 'pam_cracklib.so') and add or update: minlen=8"
+    - "Save the file. New passwords will now require at least 8 characters."
+difficulty: "easy"
+source: >
+  NIST SP 800-63B, Section 5.1.1 – Memorized Secret length requirements:
+  https://pages.nist.gov/800-63-3/sp800-63b.html

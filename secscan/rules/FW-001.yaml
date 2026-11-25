@@ -1,0 +1,29 @@
+id: "FW-001"
+title: "Firewall is enabled on all network profiles"
+severity: "critical"
+applies_to:
+  - "windows"
+  - "linux"
+collector: "firewall"
+fact_path: "firewall.all_profiles_enabled"
+condition:
+  operator: "equals"
+  expected: true
+why_it_matters: >
+  A firewall blocks unwanted incoming connections to your computer.
+  Without it, programs on your network or the internet can try to
+  reach services on your machine that should be private.
+how_to_fix:
+  windows:
+    - "Open the Start menu and type 'Windows Security', then press Enter."
+    - "Click 'Firewall & network protection'."
+    - "For each network (Domain, Private, and Public), click it and make sure the firewall is turned ON."
+  linux:
+    - "Open a terminal."
+    - "If ufw is installed, run: sudo ufw enable"
+    - "If firewalld is installed, run: sudo systemctl enable --now firewalld"
+    - "Verify by running: sudo ufw status   or   sudo firewall-cmd --state"
+difficulty: "easy"
+source: >
+  Microsoft – Windows Defender Firewall overview:
+  https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/

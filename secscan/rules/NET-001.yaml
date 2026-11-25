@@ -1,0 +1,30 @@
+id: "NET-001"
+title: "No high-risk services exposed on all network interfaces"
+severity: "high"
+applies_to:
+  - "windows"
+  - "linux"
+collector: "network"
+fact_path: "network.has_risky_ports"
+condition:
+  operator: "equals"
+  expected: false
+why_it_matters: >
+  Some network services (like FTP, Telnet, or SMB) are common targets for
+  attackers. If these services are listening on all network interfaces,
+  anyone on your network — or potentially the internet — can try to
+  connect to them. Services should only listen on the interfaces they need.
+how_to_fix:
+  windows:
+    - "Press Win+R, type 'services.msc', and press Enter."
+    - "Find the service that owns the risky port (e.g. 'Server' for SMB on port 445)."
+    - "If you do not need the service, right-click it, choose Properties, set Startup type to 'Disabled', and click Stop."
+    - "If you need the service, configure Windows Firewall to block incoming connections on that port from untrusted networks."
+  linux:
+    - "Run 'sudo ss -tlnp' to see which program owns each listening port."
+    - "If you do not need the service, stop and disable it: sudo systemctl disable --now SERVICE_NAME"
+    - "If you need the service, configure it to listen only on 127.0.0.1 (localhost) instead of 0.0.0.0, or use ufw/firewalld to restrict access."
+difficulty: "medium"
+source: >
+  CISA – Commonly Exploited Protocols:
+  https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a

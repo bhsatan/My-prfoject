@@ -1,0 +1,32 @@
+id: "PWD-002"
+title: "Account lockout is configured"
+severity: "medium"
+applies_to:
+  - "windows"
+  - "linux"
+collector: "password_policy"
+fact_path: "password_policy.lockout_threshold"
+condition:
+  operator: "greater_than"
+  expected: 0
+why_it_matters: >
+  Without an account lockout policy, an attacker can try unlimited password
+  guesses against your accounts. Setting a lockout threshold (for example,
+  lock after 5 failed attempts) slows down brute-force attacks dramatically.
+how_to_fix:
+  windows:
+    - "Press Win+R, type 'secpol.msc', and press Enter (requires admin)."
+    - "Go to Account Policies > Account Lockout Policy."
+    - "Double-click 'Account lockout threshold' and set it to 5 (or your preferred limit)."
+    - "Windows will suggest values for lockout duration and reset counter — accept the defaults or adjust as needed."
+  linux:
+    - "Open a terminal and edit the PAM authentication configuration."
+    - "On Debian/Ubuntu: sudo nano /etc/pam.d/common-auth"
+    - "On Fedora/RHEL: sudo nano /etc/pam.d/system-auth"
+    - "Add this line before other auth rules: auth required pam_faillock.so preauth deny=5 unlock_time=900"
+    - "And add after the pam_unix.so line: auth required pam_faillock.so authfail deny=5 unlock_time=900"
+    - "This locks accounts for 15 minutes after 5 failed attempts."
+difficulty: "easy"
+source: >
+  Microsoft – Account Lockout Threshold:
+  https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/account-lockout-threshold

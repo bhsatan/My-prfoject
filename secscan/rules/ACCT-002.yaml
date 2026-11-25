@@ -1,0 +1,30 @@
+id: "ACCT-002"
+title: "No more than two administrator accounts"
+severity: "medium"
+applies_to:
+  - "windows"
+  - "linux"
+collector: "accounts"
+fact_path: "accounts.admin_count"
+condition:
+  operator: "less_than"
+  expected: 3
+why_it_matters: >
+  Every account with administrator (or sudo) privileges can install software,
+  change system settings, and access all files. The more admin accounts you
+  have, the larger the target for attackers. Keep the number small and use a
+  regular account for day-to-day work.
+how_to_fix:
+  windows:
+    - "Open the Start menu and type 'Computer Management', then press Enter."
+    - "Go to 'Local Users and Groups' > 'Groups' and double-click 'Administrators'."
+    - "Review the list. Remove any user who does not need admin access by selecting them and clicking 'Remove'."
+    - "Make sure each removed user still has a standard account so they can log in."
+  linux:
+    - "Open a terminal and run: getent group sudo  (or 'wheel' on Fedora/RHEL)."
+    - "Review the members listed. Remove anyone who does not need sudo access: sudo deluser USERNAME sudo"
+    - "Verify the change: getent group sudo"
+difficulty: "medium"
+source: >
+  Microsoft – Principle of Least Privilege:
+  https://learn.microsoft.com/en-us/entra/identity-platform/secure-least-privileged-access
