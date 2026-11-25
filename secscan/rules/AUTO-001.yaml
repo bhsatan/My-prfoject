@@ -1,0 +1,32 @@
+id: "AUTO-001"
+title: "Automatic login is disabled"
+severity: "high"
+applies_to:
+  - "windows"
+  - "linux"
+collector: "autologin"
+fact_path: "autologin.enabled"
+condition:
+  operator: "equals"
+  expected: false
+why_it_matters: >
+  Automatic login skips the password prompt when your computer starts up.
+  This means anyone with physical access to your machine — a thief, a
+  curious visitor, or a child — gets full access to your desktop and all
+  your files without entering a password.
+how_to_fix:
+  windows:
+    - "Press Win+R, type 'netplwiz', and press Enter."
+    - "In the User Accounts window, check the box 'Users must enter a user name and password to use this computer'."
+    - "Click OK."
+    - "If that checkbox is missing, open Registry Editor (regedit), go to HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon, and set 'AutoAdminLogon' to 0."
+  linux:
+    - "The steps depend on your display manager."
+    - "GDM (Ubuntu/GNOME): Edit /etc/gdm3/custom.conf and set AutomaticLoginEnable=false (or remove the AutomaticLogin lines)."
+    - "LightDM: Edit /etc/lightdm/lightdm.conf and remove or comment out the 'autologin-user' line."
+    - "SDDM (KDE): Edit /etc/sddm.conf and remove or comment out the 'User=' line under [Autologin]."
+    - "After editing, restart the display manager: sudo systemctl restart gdm3  (or lightdm / sddm)."
+difficulty: "easy"
+source: >
+  Microsoft – How to turn on automatic logon:
+  https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon

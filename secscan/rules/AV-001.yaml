@@ -1,0 +1,25 @@
+id: "AV-001"
+title: "Antivirus real-time protection is enabled"
+severity: "critical"
+applies_to:
+  - "windows"
+collector: "antivirus"
+fact_path: "antivirus.real_time_enabled"
+condition:
+  operator: "equals"
+  expected: true
+why_it_matters: >
+  Real-time antivirus protection scans files and programs as you open them,
+  catching malware before it can run. Without it, a malicious file downloaded
+  from the internet or received by email could infect your system silently.
+how_to_fix:
+  windows:
+    - "Open the Start menu and type 'Windows Security', then press Enter."
+    - "Click 'Virus & threat protection'."
+    - "Under 'Virus & threat protection settings', click 'Manage settings'."
+    - "Make sure 'Real-time protection' is turned ON."
+    - "If you use a third-party antivirus, open its dashboard and ensure real-time scanning is active."
+difficulty: "easy"
+source: >
+  Microsoft – Microsoft Defender Antivirus:
+  https://learn.microsoft.com/en-us/defender-endpoint/microsoft-defender-antivirus-windows

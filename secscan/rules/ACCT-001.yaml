@@ -1,0 +1,24 @@
+id: "ACCT-001"
+title: "Guest account is disabled"
+severity: "high"
+applies_to:
+  - "windows"
+collector: "accounts"
+fact_path: "accounts.guest_enabled"
+condition:
+  operator: "equals"
+  expected: false
+why_it_matters: >
+  The guest account lets anyone use your computer without a password.
+  If it is enabled, someone with physical or network access can log in
+  and browse shared files or use your machine to attack other systems.
+how_to_fix:
+  windows:
+    - "Open the Start menu and type 'Computer Management', then press Enter."
+    - "In the left pane, expand 'Local Users and Groups' and click 'Users'."
+    - "Double-click the 'Guest' account."
+    - "Check the box labelled 'Account is disabled' and click OK."
+difficulty: "easy"
+source: >
+  Microsoft – Local Accounts security guidance:
+  https://learn.microsoft.com/en-us/windows/security/identity-protection/access-control/local-accounts

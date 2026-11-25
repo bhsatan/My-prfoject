@@ -1,0 +1,26 @@
+id: "SMB-001"
+title: "SMBv1 protocol is disabled"
+severity: "high"
+applies_to:
+  - "windows"
+collector: "remote_access"
+fact_path: "remote_access.smb1_enabled"
+condition:
+  operator: "equals"
+  expected: false
+why_it_matters: >
+  SMBv1 is an outdated file-sharing protocol with known security flaws.
+  It was the attack vector used by the WannaCry ransomware in 2017, which
+  affected hundreds of thousands of computers worldwide. Modern versions
+  of Windows use SMBv2 and SMBv3, so SMBv1 should be disabled.
+how_to_fix:
+  windows:
+    - "Open the Start menu and type 'Turn Windows features on or off', then press Enter."
+    - "Scroll down to 'SMB 1.0/CIFS File Sharing Support'."
+    - "Uncheck the box and click OK."
+    - "Restart your computer when prompted."
+    - "Alternatively, run this command in an admin PowerShell: Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -NoRestart"
+difficulty: "easy"
+source: >
+  Microsoft – How to detect, enable and disable SMBv1, SMBv2, and SMBv3:
+  https://learn.microsoft.com/en-us/windows-server/storage/file-server/troubleshoot/detect-enable-and-disable-smbv1-v2-v3

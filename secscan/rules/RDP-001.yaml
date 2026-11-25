@@ -1,0 +1,25 @@
+id: "RDP-001"
+title: "Remote Desktop requires Network Level Authentication"
+severity: "high"
+applies_to:
+  - "windows"
+collector: "remote_access"
+fact_path: "remote_access.rdp_nla_required"
+condition:
+  operator: "equals"
+  expected: true
+why_it_matters: >
+  Network Level Authentication (NLA) requires users to prove their identity
+  before a Remote Desktop session is fully established. Without NLA, the
+  login screen is exposed to anyone on the network, making it easier for
+  attackers to exploit vulnerabilities or attempt brute-force login.
+how_to_fix:
+  windows:
+    - "Right-click the Start button and select 'System'."
+    - "Click 'Remote Desktop' in the left sidebar."
+    - "If Remote Desktop is ON, check the box 'Require devices to use Network Level Authentication to connect'."
+    - "If you do not need Remote Desktop at all, turn it OFF — this is the safest option."
+difficulty: "easy"
+source: >
+  Microsoft – Allow Remote Desktop access:
+  https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/clients/remote-desktop-allow-access
