@@ -15,7 +15,7 @@ SecScan is an open-source, local-first command-line tool that inspects your mach
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/secscan.git
+git clone https://github.com/bhsatan/secscan.git
 cd secscan
 
 # Create a virtual environment
