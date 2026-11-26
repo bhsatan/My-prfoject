@@ -222,11 +222,11 @@ def _handle_scan(
     elif fmt == "json":
         if out_path is None:
             # Print to stdout
-            output = render_json(result)
+            output = render_json(result, platform_name=current_platform)
             print(output)
         else:
             file_path = out_path / _report_filename("json")
-            render_json(result, output_path=file_path)
+            render_json(result, output_path=file_path, platform_name=current_platform)
             print(f"  Report saved to: {file_path}")
 
     elif fmt == "html":

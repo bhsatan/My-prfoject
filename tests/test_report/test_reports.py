@@ -9,6 +9,7 @@ import io
 import json
 from pathlib import Path
 
+from secscan import __version__
 from secscan.report.html_report import render_html
 from secscan.report.json_report import render_json
 from secscan.report.terminal import render_terminal
@@ -96,10 +97,13 @@ class TestTerminalReport:
 class TestJsonReport:
     def test_valid_json_structure(self) -> None:
         result = _sample_result()
-        raw = render_json(result)
+        raw = render_json(result, platform_name="linux", scan_id="20261126T120000Z_deadbeef")
         data = json.loads(raw)
 
-        assert data["secscan_version"] == "0.1.0"
+        assert data["schema_version"] == "1.0"
+        assert data["scan_id"] == "20261126T120000Z_deadbeef"
+        assert data["os"] == "linux"
+        assert data["tool_version"] == "0.2.0"
         assert data["score"] == result.score
         assert data["grade"] == result.grade
         assert data["summary"]["total_checks"] == 3
@@ -108,6 +112,9 @@ class TestJsonReport:
         assert data["summary"]["unknown"] == 1
         assert len(data["findings"]) == 3
         assert data["findings"][0]["rule_id"] == "FW-001"
+        assert data["findings"][0]["category"] == "firewall"
+        assert len(data["not_checked"]) == 1
+        assert data["not_checked"][0]["rule_id"] == "DISK-001"
 
     def test_writes_to_file(self, tmp_path: Path) -> None:
         result = _sample_result()
@@ -167,6 +174,6 @@ class TestHtmlReport:
     def test_footer_contains_version_and_date_without_external_links(self) -> None:
         result = _sample_result()
         html = render_html(result)
-        assert "SecScan v0.1.0 · Generated:" in html
+        assert f"SecScan v{__version__} · Generated:" in html
         assert "Check for Updates" not in html
         assert "github.com/bhsatan/Sescan/releases" not in html
