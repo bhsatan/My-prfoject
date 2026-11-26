@@ -293,8 +293,12 @@ def _handle_update(*, open_browser: bool = False) -> int:
     print(f"\n  SecScan current version: v{__version__}")
     print(f"  Releases page:           {_RELEASES_URL}")
     print("\n  To update (run manually):")
-    print("    git pull && pip install -e .")
-    print(f"    # or: pip install --upgrade git+{_RELEASES_URL.removesuffix('/releases')}.git\n")
+    print("    # From a SecScan checkout (change to the SecScan directory first):")
+    print("    cd /path/to/secscan && git pull && pip install -e .")
+    print(
+        f"    # Or from anywhere: pip install --upgrade "
+        f"git+{_RELEASES_URL.removesuffix('/releases')}.git\n"
+    )
     if open_browser:
         webbrowser.open(_RELEASES_URL)
     return 0
