@@ -316,7 +316,7 @@ class TestPasswordPolicyCollector:
             facts = PasswordPolicyCollector().get_facts()
         assert "FAKE_SECRET_12345" not in caplog.text
         assert "RuntimeError" in caplog.text
-        assert "error" in facts["password_policy"]
+        assert facts["password_policy"]["error"] == "Collection failed (RuntimeError)"
 
 
 # ===================================================================

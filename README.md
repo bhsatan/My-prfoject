@@ -54,7 +54,7 @@ SecScan has no built-in auto-updater. Check the [GitHub Releases](https://github
 cd /path/to/secscan && git pull && pip install -e .
 
 # Or from anywhere:
-pip install --upgrade git+https://github.com/bhsatan/Sescan.git
+pip install --upgrade --force-reinstall git+https://github.com/bhsatan/Sescan.git
 ```
 
 ---
