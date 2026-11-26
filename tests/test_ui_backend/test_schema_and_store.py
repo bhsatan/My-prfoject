@@ -276,3 +276,46 @@ class TestDashboardStore:
         )
         with pytest.raises(DashboardValidationError, match="outside"):
             store.save_dashboard(payload)
+
+    def test_rejects_naive_scan_time_and_non_string_finding_enum(self) -> None:
+        data = _valid_v1_report(scan_time="2026-11-26T12:00:00")
+        with pytest.raises(ReportValidationError, match="timezone"):
+            validate_report_dict(data)
+
+        bad_enum = _valid_v1_report()
+        bad_enum["findings"][0]["status"] = ["fail"]
+        with pytest.raises(ReportValidationError, match="status is invalid"):
+            validate_report_dict(bad_enum)
+
+    def test_rejects_ftp_protocol_relative_and_unhashable_filter(self) -> None:
+        for bad_title in ("ftp://files.example/a", "//evil.example/x"):
+            with pytest.raises(DashboardValidationError, match="HTML or URLs"):
+                validate_dashboard_dict(
+                    {
+                        "schema_version": "1.0",
+                        "id": "bad-link",
+                        "name": "Ok",
+                        "widgets": [{"type": "score_gauge", "title": bad_title, "filters": {}}],
+                    }
+                )
+
+        with pytest.raises(DashboardValidationError, match="filters.severity"):
+            validate_dashboard_dict(
+                {
+                    "schema_version": "1.0",
+                    "id": "bad-filter",
+                    "name": "Ok",
+                    "widgets": [
+                        {"type": "score_gauge", "title": "Ok", "filters": {"severity": [{"a": 1}]}},
+                    ],
+                }
+            )
+
+    def test_recursion_error_in_json_loads_converted(self, tmp_path: Path, monkeypatch) -> None:
+        p = tmp_path / "rec.json"
+        p.write_text("{}", encoding="utf-8")
+        monkeypatch.setattr(
+            "secscan_ui.schema.json.loads", lambda _s: (_ for _ in ()).throw(RecursionError())
+        )
+        with pytest.raises(ReportValidationError, match="maximum depth"):
+            load_report_file(p, tmp_path)

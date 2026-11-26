@@ -42,6 +42,10 @@ secscan = "secscan.cli:main"
 [tool.setuptools.packages.find]
 include = ["secscan*", "secscan_ui*"]
 
+[tool.setuptools.package-data]
+secscan = ["rules/*.yaml"]
+secscan_ui = ["templates/*.html", "static/*.css"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100

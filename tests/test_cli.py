@@ -161,3 +161,23 @@ class TestCliUi:
         mock_serve.assert_called_once()
         err = capsys.readouterr().err
         assert "world-readable" in err.lower()
+
+    def test_ui_ipv6_and_allowed_hosts_env_merged(self, monkeypatch, tmp_path: Path) -> None:
+        monkeypatch.setenv("SECSCAN_UI_ALLOWED_HOSTS", "custom.local:8080")
+        captured: dict[str, object] = {}
+
+        def fake_create_app(**kwargs):
+            captured.update(kwargs)
+            return object()
+
+        with (
+            patch("secscan_ui.__main__._is_privileged", return_value=False),
+            patch("secscan_ui.__main__._serve"),
+            patch("secscan_ui.app.create_app", side_effect=fake_create_app),
+        ):
+            rc = main(["ui", "--host", "::1", "--port", "9090", "--reports-dir", str(tmp_path)])
+        assert rc == 0
+        hosts = captured["allowed_hosts"]
+        assert isinstance(hosts, set)
+        assert "[::1]:9090" in hosts
+        assert "custom.local:8080" in hosts

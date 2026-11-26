@@ -176,7 +176,7 @@ def create_app(
     def home() -> str:
         valid, skipped = report_store.list_scans()
         latest = valid[0] if valid else None
-        trends = report_store.compute_trends() if valid else None
+        trends = report_store.compute_trends(valid) if valid else None
         return render_template(
             "home.html",
             latest=latest,
@@ -190,7 +190,7 @@ def create_app(
     @app.get("/scans")
     def scans_list() -> str:
         valid, skipped = report_store.list_scans()
-        trends = report_store.compute_trends()
+        trends = report_store.compute_trends(valid)
         return render_template(
             "scans.html",
             scans=valid,
@@ -244,7 +244,7 @@ def create_app(
         active = next((d for d in dashboards if d["id"] == selected_id), dashboards[0])
         valid, _ = report_store.list_scans()
         latest = valid[0] if valid else None
-        trends = report_store.compute_trends() if valid else None
+        trends = report_store.compute_trends(valid) if valid else None
 
         rendered_widgets = []
         for w in active["widgets"]:

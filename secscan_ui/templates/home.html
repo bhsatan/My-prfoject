@@ -75,15 +75,20 @@
 
   <section class="card">
     <h2>Category Breakdown</h2>
-    <svg class="chart" viewBox="0 0 520 {{ categories|length * 34 + 20 }}" role="img" aria-labelledby="cat-title">
+    <svg class="chart" viewBox="0 0 560 {{ categories|length * 34 + 20 }}" role="img" aria-labelledby="cat-title">
       <title id="cat-title">Checks by category</title>
+      {% set max_total = (categories|map(attribute='total')|max) if categories else 1 %}
+      {% set bar_max = 180 %}
       {% for row in categories %}
         {% set y = loop.index0 * 34 + 16 %}
+        {% set fail_w = (row.fail * bar_max // max_total) if max_total else 0 %}
+        {% set unk_w = (row.unknown * bar_max // max_total) if max_total else 0 %}
+        {% set pass_w = (row.pass * bar_max // max_total) if max_total else 0 %}
         <text x="4" y="{{ y + 12 }}" class="svg-label">{{ row.category|clean }}</text>
-        <rect x="150" y="{{ y }}" width="{{ row.fail * 24 }}" height="16" class="svg-bar-fail" />
-        <rect x="{{ 150 + row.fail * 24 }}" y="{{ y }}" width="{{ row.unknown * 24 }}" height="16" class="svg-bar-unknown" />
-        <rect x="{{ 150 + (row.fail + row.unknown) * 24 }}" y="{{ y }}" width="{{ row.pass * 24 }}" height="16" class="svg-bar-pass" />
-        <text x="{{ 160 + row.total * 24 }}" y="{{ y + 12 }}" class="svg-label">
+        <rect x="145" y="{{ y }}" width="{{ fail_w }}" height="16" class="svg-bar-fail" />
+        <rect x="{{ 145 + fail_w }}" y="{{ y }}" width="{{ unk_w }}" height="16" class="svg-bar-unknown" />
+        <rect x="{{ 145 + fail_w + unk_w }}" y="{{ y }}" width="{{ pass_w }}" height="16" class="svg-bar-pass" />
+        <text x="335" y="{{ y + 12 }}" class="svg-label">
           {{ row.pass }} pass, {{ row.fail }} fail, {{ row.unknown }} unknown
         </text>
       {% endfor %}

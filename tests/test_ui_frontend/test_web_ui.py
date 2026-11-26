@@ -62,6 +62,20 @@ def _extract_csrf(html: str) -> str:
     return match.group(1)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_ui_env(monkeypatch) -> None:
+    """Clear inherited UI environment variables before each test."""
+    for var in (
+        "SECSCAN_UI_BIND_HOST",
+        "SECSCAN_UI_ALLOW_REMOTE",
+        "SECSCAN_UI_ALLOWED_HOSTS",
+        "SECSCAN_REPORTS_DIR",
+        "SECSCAN_DATA_DIR",
+        "SECSCAN_AI_API_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
+
+
 @pytest.fixture()
 def ui_client(tmp_path: Path):
     reports_dir = tmp_path / "reports"

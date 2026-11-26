@@ -226,6 +226,8 @@ def validate_report_dict(data: Any, *, filename: str = "<memory>") -> ScanReport
         scan_time = datetime.fromisoformat(scan_time_raw)
     except ValueError as exc:
         raise ReportValidationError("scan_time is not a valid ISO-8601 timestamp.") from exc
+    if scan_time.tzinfo is None or scan_time.utcoffset() is None:
+        raise ReportValidationError("scan_time must include a timezone offset.")
 
     os_name = data["os"]
     if not isinstance(os_name, str) or os_name not in VALID_OS:
@@ -316,11 +318,11 @@ def _validate_findings(findings: Any) -> list[FindingRecord]:
         ):
             if not isinstance(item[str_key], str):
                 raise ReportValidationError(f"findings[{idx}].{str_key} must be a string.")
-        if item["status"] not in VALID_STATUSES:
+        if not isinstance(item["status"], str) or item["status"] not in VALID_STATUSES:
             raise ReportValidationError(f"findings[{idx}].status is invalid.")
-        if item["severity"] not in VALID_SEVERITIES:
+        if not isinstance(item["severity"], str) or item["severity"] not in VALID_SEVERITIES:
             raise ReportValidationError(f"findings[{idx}].severity is invalid.")
-        if item["difficulty"] not in VALID_DIFFICULTIES:
+        if not isinstance(item["difficulty"], str) or item["difficulty"] not in VALID_DIFFICULTIES:
             raise ReportValidationError(f"findings[{idx}].difficulty is invalid.")
         steps = item["how_to_fix"]
         if not isinstance(steps, list) or not all(isinstance(s, str) for s in steps):
@@ -371,5 +373,7 @@ def load_report_file(path: Path, reports_dir: Path) -> ScanReport:
         parsed = json.loads(raw_text)
     except json.JSONDecodeError as exc:
         raise ReportValidationError(f"Malformed JSON: {exc.msg}.") from exc
+    except RecursionError as exc:
+        raise ReportValidationError("JSON nesting exceeds maximum depth.") from exc
     _check_json_depth(parsed)
     return validate_report_dict(parsed, filename=safe_path.name)

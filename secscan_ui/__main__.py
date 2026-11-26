@@ -104,15 +104,25 @@ def run_ui(
 
     from secscan_ui.app import create_app
 
+    env_hosts = os.environ.get("SECSCAN_UI_ALLOWED_HOSTS", "")
+    extra_hosts = {h.strip().lower() for h in env_hosts.split(",") if h.strip()}
+
     allowed_hosts = {
         "127.0.0.1",
         "localhost",
         f"127.0.0.1:{port}",
         f"localhost:{port}",
         "testclient",
-    }
-    if allow_remote:
-        allowed_hosts.update({host.lower(), f"{host.lower()}:{port}"})
+    } | extra_hosts
+
+    if host == "::1":
+        allowed_hosts.update({"::1", "[::1]", f"[::1]:{port}"})
+    elif allow_remote:
+        lower_host = host.lower()
+        if ":" in lower_host and not lower_host.startswith("["):
+            allowed_hosts.update({lower_host, f"[{lower_host}]", f"[{lower_host}]:{port}"})
+        else:
+            allowed_hosts.update({lower_host, f"{lower_host}:{port}"})
 
     app = create_app(
         reports_dir=resolved_reports,

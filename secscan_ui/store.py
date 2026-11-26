@@ -37,7 +37,10 @@ VALID_WIDGET_TYPES = frozenset(
 )
 
 DASHBOARD_ID_RE = re.compile(r"^[a-z0-9_-]{2,48}$")
-_URL_SCHEME_RE = re.compile(r"https?://|javascript:|data:", re.IGNORECASE)
+_URL_SCHEME_RE = re.compile(
+    r"(?:[A-Za-z][A-Za-z0-9+.-]*://|javascript:|data:|vbscript:|(?:^|\s)//\S+)",
+    re.IGNORECASE,
+)
 _HTML_TAG_RE = re.compile(r"[<>]")
 
 
@@ -94,9 +97,10 @@ class ReportStore:
                 return report
         return None
 
-    def compute_trends(self) -> TrendSummary:
+    def compute_trends(self, valid: list[ScanReport] | None = None) -> TrendSummary:
         """Compute score trend and finding diffs across valid scans."""
-        valid, _ = self.list_scans()
+        if valid is None:
+            valid, _ = self.list_scans()
         if not valid:
             return TrendSummary(points=[], score_delta=None, newly_failed=[], resolved=[])
 
@@ -255,12 +259,16 @@ def _validate_widget_filters(filters: Any, idx: int) -> dict[str, list[str]]:
     clean: dict[str, list[str]] = {}
     if "severity" in filters:
         sevs = filters["severity"]
-        if not isinstance(sevs, list) or not all(s in VALID_SEVERITIES for s in sevs):
+        if not isinstance(sevs, list) or not all(
+            isinstance(s, str) and s in VALID_SEVERITIES for s in sevs
+        ):
             raise DashboardValidationError(f"widgets[{idx}].filters.severity is invalid.")
         clean["severity"] = list(sevs)
     if "status" in filters:
         statuses = filters["status"]
-        if not isinstance(statuses, list) or not all(s in VALID_STATUSES for s in statuses):
+        if not isinstance(statuses, list) or not all(
+            isinstance(s, str) and s in VALID_STATUSES for s in statuses
+        ):
             raise DashboardValidationError(f"widgets[{idx}].filters.status is invalid.")
         clean["status"] = list(statuses)
     return clean
@@ -296,6 +304,8 @@ class DashboardStore:
             parsed = json.loads(raw_json)
         except json.JSONDecodeError as exc:
             raise DashboardValidationError(f"Invalid JSON: {exc.msg}.") from exc
+        except RecursionError as exc:
+            raise DashboardValidationError("Dashboard JSON nesting exceeds maximum depth.") from exc
         try:
             _check_json_depth(parsed)
         except ReportValidationError as exc:

@@ -172,7 +172,7 @@ See [SECURITY.md](SECURITY.md) and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) 
 ## Development
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[ui,dev]"
 pytest -v
 ruff check .
 ruff format --check .
