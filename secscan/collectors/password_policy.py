@@ -116,34 +116,86 @@ class PasswordPolicyCollector(Collector):
                 continue
         return lines if readable else None
 
-    def _min_length(self, lines: list[str]) -> int:
+    def _pwquality_paths(self) -> list[str]:
+        """Return pwquality config paths in libpwquality precedence order.
+
+        Sorted drop-ins are read before ``/etc/security/pwquality.conf`` so
+        that ``_read_setting`` (last match wins) matches libpwquality
+        precedence when the main file is checked last.
+        """
+        return sorted(glob.glob("/etc/security/pwquality.conf.d/*.conf")) + [
+            "/etc/security/pwquality.conf"
+        ]
+
+    def _is_pwquality_enforcing(self, matching: list[str]) -> bool | None:
+        """Return True if pam_pwquality enforces, False if disabled, None if unknown."""
+        for line in matching:
+            if match := re.search(r"\benforcing=(-?\d+)", line):
+                return int(match.group(1)) != 0
+            if re.search(r"\benforcing=\S+", line):
+                return None
+
+        configured, err = self._read_setting(
+            self._pwquality_paths(), "enforcing", allow_signed=True
+        )
+        if err is not None:
+            return None
+        # libpwquality defaults to enforcing=1 when omitted
+        return True if configured is None else configured != 0
+
+    def _min_length(self, lines: list[str]) -> int | None:
         # Module name -> its built-in default minimum length
+        saw_disabled_pwquality = False
         for module, default in (("pam_pwquality", 8), ("pam_cracklib", 9), ("pam_unix", 6)):
             matching = [line for line in lines if module in line]
             if not matching:
                 continue
+
+            if module == "pam_pwquality":
+                enforcing = self._is_pwquality_enforcing(matching)
+                if enforcing is None:
+                    return None
+                if not enforcing:
+                    saw_disabled_pwquality = True
+                    continue
+
             # A module argument overrides the config file
             for line in matching:
                 if match := re.search(r"\bminlen=(\d+)", line):
                     return int(match.group(1))
+
             if module == "pam_pwquality":
-                configured = self._read_setting(
-                    ["/etc/security/pwquality.conf"]
-                    + sorted(glob.glob("/etc/security/pwquality.conf.d/*.conf")),
-                    "minlen",
-                )
+                configured, err = self._read_setting(self._pwquality_paths(), "minlen")
+                if err is not None:
+                    return None
                 return default if configured is None else configured
             return default
-        return 0
 
-    def _lockout_threshold(self, lines: list[str]) -> int:
+        return None if saw_disabled_pwquality else 0
+
+    def _lockout_threshold(self, lines: list[str]) -> int | None:
         # pam_faillock only counts failures if an "authfail" line is present
         faillock = [line for line in lines if "pam_faillock" in line]
         if any("authfail" in line for line in faillock):
             for line in faillock:
                 if match := re.search(r"\bdeny=(\d+)", line):
                     return int(match.group(1))
-            configured = self._read_setting(["/etc/security/faillock.conf"], "deny")
+
+            # Resolve conf= from applicable authfail or preauth line
+            conf_path = "/etc/security/faillock.conf"
+            for target in ("authfail", "preauth"):
+                found = False
+                for line in faillock:
+                    if target in line and (match := re.search(r"\bconf=(\S+)", line)):
+                        conf_path = match.group(1)
+                        found = True
+                        break
+                if found:
+                    break
+
+            configured, err = self._read_setting([conf_path], "deny")
+            if err is not None:
+                return None
             return 3 if configured is None else configured
 
         for line in lines:
@@ -152,15 +204,29 @@ class PasswordPolicyCollector(Collector):
         return 0
 
     @staticmethod
-    def _read_setting(paths: list[str], key: str) -> int | None:
-        """Last integer value of ``key = N`` across the given config files."""
+    def _read_setting(
+        paths: list[str],
+        key: str,
+        *,
+        allow_signed: bool = False,
+    ) -> tuple[int | None, str | None]:
+        """Last integer value of ``key = N`` across the given config files.
+
+        Returns ``(value, error_message)``.  Genuinely missing files
+        (``FileNotFoundError``) are skipped; other ``OSError`` failures
+        (e.g. ``PermissionError``) return ``(None, error_message)`` so callers
+        can report ``unknown`` instead of assuming defaults.
+        """
+        num_pattern = r"-?\d+" if allow_signed else r"\d+"
         value = None
         for path in paths:
             try:
                 with open(path, encoding="utf-8") as fh:
                     for line in fh:
-                        if match := re.match(rf"\s*{key}\s*=\s*(\d+)", line):
+                        if match := re.match(rf"\s*{key}\s*=\s*({num_pattern})", line):
                             value = int(match.group(1))
-            except OSError:
+            except FileNotFoundError:
                 continue
-        return value
+            except OSError as exc:
+                return None, f"Cannot read {path}: {exc}"
+        return value, None

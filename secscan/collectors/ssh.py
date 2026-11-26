@@ -1,8 +1,7 @@
 """SSH server configuration collector.  Linux only.
 
-Reads ``/etc/ssh/sshd_config`` (and drop-in overrides in
-``/etc/ssh/sshd_config.d/``) to check ``PermitRootLogin`` and
-``PasswordAuthentication``.
+Reads ``/etc/ssh/sshd_config`` (and ``Include`` files) to check
+``PermitRootLogin`` and ``PasswordAuthentication``.
 """
 
 from __future__ import annotations
@@ -11,6 +10,7 @@ import glob
 import logging
 import os
 import re
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -53,25 +53,29 @@ class SSHCollector(Collector):
                 service_running = True
                 break
 
-        # Parse config. Without a readable main config we know nothing.
+        # Parse config. Without a readable main config or included file we know nothing.
         config = self._parse_sshd_config()
         if config is None:
-            return {"ssh": {"error": "Cannot read /etc/ssh/sshd_config (is sshd installed?)."}}
+            return {"ssh": {"error": "Cannot read /etc/ssh/sshd_config or included file."}}
 
-        permit_root = config.get(
-            "permitrootlogin",
-            _DEFAULTS["PermitRootLogin"],
-        ).lower()
-        password_auth_str = config.get(
-            "passwordauthentication",
-            _DEFAULTS["PasswordAuthentication"],
-        ).lower()
-        password_auth_enabled = password_auth_str != "no"  # noqa: S105
+        # If a Match block may override a directive, report None (unknown) rather than
+        # giving a false pass/fail.
+        raw_permit_root = config.get("permitrootlogin", _DEFAULTS["PermitRootLogin"])
+        permit_root: str | None = None if raw_permit_root is None else str(raw_permit_root).lower()
 
-        parts = []
-        parts.append(f"sshd: {'active' if service_running else 'inactive'}")
-        parts.append(f"PermitRootLogin: {permit_root}")
-        parts.append(f"PasswordAuthentication: {password_auth_str}")
+        raw_pw_auth = config.get("passwordauthentication", _DEFAULTS["PasswordAuthentication"])
+        if raw_pw_auth is None:
+            password_auth_str = "unknown"  # noqa: S105
+            password_auth_enabled: bool | None = None
+        else:
+            password_auth_str = str(raw_pw_auth).lower()
+            password_auth_enabled = password_auth_str != "no"  # noqa: S105
+
+        parts = [
+            f"sshd: {'active' if service_running else 'inactive'}",
+            f"PermitRootLogin: {permit_root or 'unknown (conditional Match)'}",
+            f"PasswordAuthentication: {password_auth_str}",
+        ]
 
         return {
             "ssh": {
@@ -82,21 +86,49 @@ class SSHCollector(Collector):
             },
         }
 
-    def _parse_sshd_config(self) -> dict[str, str] | None:
-        """Parse the global section of sshd_config, following ``Include``.
+    def _parse_sshd_config(self) -> dict[str, str | None] | None:
+        """Parse sshd_config, following ``Include`` and tracking ``Match`` overrides.
 
-        Like sshd, the first value seen for a directive wins and included
-        files are read at the point of the ``Include`` line.  ``Match`` blocks
-        are ignored.  Returns ``None`` if the main config cannot be read.
+        Like sshd, the first value seen for a global directive wins and
+        included files are read at the point of the ``Include`` line.
+        If a ``Match`` block may override ``PermitRootLogin`` or
+        ``PasswordAuthentication``, that directive is marked ``None`` (unknown)
+        unless the ``Match`` condition clearly cannot apply (e.g.
+        ``Match User <non-root>`` for ``PermitRootLogin``).
+        Returns ``None`` if the main config or any matched include cannot be read.
         """
-        result: dict[str, str] = {}
-        if not self._parse_file(Path("/etc/ssh/sshd_config"), result):
+        result: dict[str, str | None] = {}
+        state: dict[str, Any] = {"match_spec": None}
+        if not self._parse_file(Path("/etc/ssh/sshd_config"), result, state=state):
             return None
         return result
 
+    @staticmethod
+    def _match_can_apply_to_root(match_spec: str) -> bool:
+        """Return False only when a Match condition clearly excludes root."""
+        tokens = match_spec.strip().split()
+        # Handle simple "User <pattern>" criteria
+        if len(tokens) >= 2 and tokens[0].lower() == "user":
+            user_list = tokens[1].split(",")
+            # If none of the patterns is root or a wildcard/negation, root is excluded
+            if not any(
+                u in ("root", "*") or "*" in u or "?" in u or u.startswith("!") for u in user_list
+            ):
+                return False
+        return True
+
     @classmethod
-    def _parse_file(cls, path: Path, result: dict[str, str], depth: int = 0) -> bool:
+    def _parse_file(
+        cls,
+        path: Path,
+        result: dict[str, str | None],
+        depth: int = 0,
+        state: dict[str, Any] | None = None,
+    ) -> bool:
         """Parse one config file into *result*.  Returns False if unreadable."""
+        if state is None:
+            state = {"match_spec": None}
+
         try:
             with open(path, encoding="utf-8") as fh:
                 lines = fh.readlines()
@@ -109,15 +141,35 @@ class SSHCollector(Collector):
             parts = re.split(r"[ \t=]+", line.strip(), maxsplit=1)
             if len(parts) != 2 or parts[0].startswith("#"):
                 continue
-            directive, value = parts[0].lower(), parts[1].strip().strip('"')
+            directive = parts[0].lower()
+            raw_value = parts[1].strip()
+
             if directive == "match":
-                break
-            if directive == "include" and depth < 8:
-                for pattern in value.split():
-                    # Relative patterns are relative to /etc/ssh
-                    full = os.path.join("/etc/ssh", pattern.strip('"'))
-                    for included in sorted(glob.glob(full)):
-                        cls._parse_file(Path(included), result, depth + 1)
+                state["match_spec"] = raw_value
                 continue
+
+            if directive == "include" and depth < 8:
+                try:
+                    patterns = shlex.split(raw_value)
+                except ValueError:
+                    patterns = raw_value.split()
+                for pattern in patterns:
+                    # Relative patterns are relative to /etc/ssh
+                    full = os.path.join("/etc/ssh", pattern)
+                    for included in sorted(glob.glob(full)):
+                        if not cls._parse_file(Path(included), result, depth + 1, state=state):
+                            return False
+                continue
+
+            value = raw_value.strip('"')
+            if state["match_spec"] is not None:
+                if directive == "permitrootlogin" and cls._match_can_apply_to_root(
+                    state["match_spec"]
+                ):
+                    result["permitrootlogin"] = None
+                elif directive == "passwordauthentication":
+                    result["passwordauthentication"] = None
+                continue
+
             result.setdefault(directive, value)
         return True

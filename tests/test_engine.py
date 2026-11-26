@@ -176,6 +176,30 @@ class TestLoadRules:
         with pytest.raises(RuleValidationError, match="how_to_fix.*linux"):
             load_rules(tmp_path)
 
+    def test_mapping_source_missing_platform_raises(self, tmp_path: Path) -> None:
+        """Mapping-valued source must cite every platform in applies_to."""
+        self._write_rule(
+            tmp_path,
+            "BAD.yaml",
+            self._minimal_rule_yaml(
+                applies_to='\n  - "windows"\n  - "linux"',
+                how_to_fix='\n  windows:\n    - "W"\n  linux:\n    - "L"',
+                source='\n  windows: "https://example.com/win"',
+            ),
+        )
+        with pytest.raises(RuleValidationError, match="source.*linux"):
+            load_rules(tmp_path)
+
+    def test_mapping_source_empty_citation_raises(self, tmp_path: Path) -> None:
+        """Mapping-valued source must have non-empty strings."""
+        self._write_rule(
+            tmp_path,
+            "BAD.yaml",
+            self._minimal_rule_yaml(source='\n  windows: "   "'),
+        )
+        with pytest.raises(RuleValidationError, match="source.windows"):
+            load_rules(tmp_path)
+
     def test_empty_rules_dir(self, tmp_path: Path) -> None:
         """An empty rules directory returns an empty list."""
         rules = load_rules(tmp_path)

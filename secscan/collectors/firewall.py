@@ -7,6 +7,7 @@ Linux:   checks for ``ufw`` or ``firewalld`` service status.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from secscan.collectors.base import Collector, get_platform, safe_run
@@ -103,7 +104,9 @@ class FirewallCollector(Collector):
         try:
             with open("/etc/ufw/ufw.conf", encoding="utf-8") as fh:
                 for line in fh:
-                    if line.strip().lower().replace('"', "") == "enabled=yes":
+                    # Strip trailing comments only when preceded by whitespace
+                    cleaned = re.sub(r"\s+#.*$", "", line).strip().lower().replace('"', "")
+                    if cleaned == "enabled=yes":
                         return {
                             "firewall": {
                                 "all_profiles_enabled": True,

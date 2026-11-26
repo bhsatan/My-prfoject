@@ -20,8 +20,9 @@ how_to_fix:
     - "For each network (Domain, Private, and Public), click it and make sure the firewall is turned ON."
   linux:
     - 'Check which firewall you have. On Debian, Ubuntu or Kali you can install ufw: sudo apt install ufw'
-    - 'If you connect to this machine over SSH, allow it FIRST or you may be locked out: sudo ufw allow ssh'
-    - 'Enable ufw: sudo ufw enable   then verify: sudo ufw status verbose'
+    - 'If you connect over SSH, first find your active SSH listening port: sudo ss -tlnp | grep ssh   (or sudo sshd -T | grep "^port ")'
+    - 'Allow that exact TCP port before enabling ufw (e.g. for port 22: sudo ufw allow 22/tcp), and make sure you have console/recovery access in case of a mistake.'
+    - 'Enable ufw: sudo ufw enable   then test logging in from a second SSH connection before closing your current session, and verify: sudo ufw status verbose'
     - 'If you use firewalld instead: sudo systemctl enable --now firewalld   then verify: sudo firewall-cmd --state'
 difficulty: "easy"
 source:

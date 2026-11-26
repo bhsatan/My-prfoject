@@ -119,6 +119,7 @@ def _load_single_rule(rule_path: Path, seen_ids: set[str]) -> Rule:
     _validate_condition(path_str, data["condition"])
     _validate_how_to_fix(path_str, data["how_to_fix"], data["applies_to"])
     _validate_difficulty(path_str, data["difficulty"])
+    _validate_source(path_str, data["source"], data["applies_to"])
 
     return Rule(
         id=str(data["id"]),
@@ -220,3 +221,28 @@ def _validate_difficulty(path_str: str, difficulty: object) -> None:
             path_str,
             f"difficulty must be one of {sorted(VALID_DIFFICULTIES)}, got '{difficulty}'",
         )
+
+
+def _validate_source(
+    path_str: str,
+    source: object,
+    applies_to: list[str],
+) -> None:
+    """Validate scalar or per-platform mapping ``source`` citations."""
+    if isinstance(source, dict):
+        for platform in applies_to:
+            if platform not in source:
+                raise RuleValidationError(
+                    path_str,
+                    f"source must include a citation for '{platform}' (listed in applies_to)",
+                )
+        for platform, citation in source.items():
+            if not isinstance(citation, str) or not citation.strip():
+                raise RuleValidationError(
+                    path_str,
+                    f"source.{platform} must be a non-empty string",
+                )
+        return
+
+    if not isinstance(source, str) or not source.strip():
+        raise RuleValidationError(path_str, "source must be a non-empty string")

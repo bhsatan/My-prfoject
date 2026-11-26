@@ -15,12 +15,12 @@ why_it_matters: >
   Disabling password authentication forces everyone to use keys.
 how_to_fix:
   linux:
-    - 'If you do not need to SSH into this machine, disable the server: sudo systemctl disable --now ssh   (the service is sshd on Fedora/RHEL)'
+    - 'If you do not need to SSH into this machine, disable the server: on Ubuntu 22.10+ run sudo systemctl disable --now ssh.socket ssh   (on older Debian/Ubuntu: sudo systemctl disable --now ssh; on Fedora/RHEL: sudo systemctl disable --now sshd)'
     - 'Set up SSH key login and confirm it works first, or you will be locked out.'
-    - 'Create /etc/ssh/sshd_config.d/00-hardening.conf containing: PasswordAuthentication no and, on its own line, KbdInteractiveAuthentication no'
+    - 'Confirm /etc/ssh/sshd_config has an active global "Include /etc/ssh/sshd_config.d/*.conf" line before any conflicting PasswordAuthentication setting, then create /etc/ssh/sshd_config.d/01-password-auth.conf (or append to 00-hardening.conf without removing existing lines) containing: PasswordAuthentication no and, on its own line, KbdInteractiveAuthentication no   (fallback: set both directly at the top of /etc/ssh/sshd_config).'
     - 'Check the syntax: sudo sshd -t'
     - 'Apply it: sudo systemctl restart ssh   (sshd on Fedora/RHEL)'
-    - 'Confirm the effective settings: sudo sshd -T'
+    - 'Confirm the effective settings for your login user and any Match contexts: sudo sshd -T -C user=YOUR_USERNAME   (and test relevant -C user=...,addr=... combinations if you use Match blocks; resolve any conflicting Match overrides).'
 difficulty: "medium"
 source: >
   OpenSSH sshd_config manual – PasswordAuthentication:

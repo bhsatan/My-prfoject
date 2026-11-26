@@ -22,9 +22,9 @@ how_to_fix:
   linux:
     - 'WARNING: a mistake in PAM files can block all logins. Open a root shell (sudo -i), keep it open, and back up the files you edit.'
     - 'Fedora/RHEL: sudo authselect enable-feature with-faillock'
-    - 'Debian/Ubuntu/Kali: in /etc/pam.d/common-auth add before pam_unix: auth required pam_faillock.so preauth'
-    - 'Add directly after pam_unix: auth [default=die] pam_faillock.so authfail'
-    - 'Adding that line changes how many modules a successful login must skip: raise N by 1 in the pam_unix [success=N ...] option (usually 1 becomes 2). If you skip this, correct passwords are rejected.'
+    - 'Debian/Ubuntu/Kali: in /etc/pam.d/common-auth add before the first authentication provider (e.g. pam_unix): auth required pam_faillock.so preauth'
+    - 'Place auth [default=die] pam_faillock.so authfail after all authentication providers (such as pam_unix and pam_sss) so it runs only when every provider fails.'
+    - 'Recalculate the [success=N ...] skip count on each provider line (for example pam_unix and pam_sss) so a successful login jumps past all remaining providers AND the authfail line; otherwise valid passwords will be rejected.'
     - 'In /etc/pam.d/common-account add: account required pam_faillock.so'
     - 'In /etc/security/faillock.conf set: deny = 5 and unlock_time = 900'
     - 'Test a login in a second terminal before closing the root shell.'

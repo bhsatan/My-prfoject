@@ -29,4 +29,4 @@ how_to_fix:
 difficulty: "easy"
 source:
   windows: "Microsoft – How to turn on automatic logon: https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon"
-  linux: "GDM configuration reference: https://help.gnome.org/admin/gdm/stable/configuration.html.en"
+  linux: "GNOME System Administration Guide – Configure automatic login: https://help.gnome.org/admin/system-admin-guide/stable/login-automatic.html.en"

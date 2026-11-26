@@ -22,7 +22,7 @@ how_to_fix:
   linux:
     - 'Debian/Ubuntu/Kali: install the quality module first: sudo apt install libpam-pwquality'
     - 'Edit /etc/security/pwquality.conf and set: minlen = 12'
-    - 'If the pam_pwquality or pam_unix line in your PAM files has its own minlen=, update or remove it, as it overrides the config file.'
+    - 'If the pam_pwquality line in your PAM files has its own minlen=, update or remove it, as it overrides the config file.'
     - 'Test with: passwd   (existing passwords are not rechecked)'
 difficulty: "easy"
 source: >
