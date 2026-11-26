@@ -27,3 +27,18 @@ reviews:
         Verify every action uses a pinned 40-character commit SHA, permissions
         follow least privilege, persist-credentials is false on checkout, and no
         untrusted context values are interpolated into run steps.
+    - path: "secscan_ui/**"
+      instructions: >
+        Verify strict output escaping (no |safe, autoescape on), CSP without
+        unsafe-inline, CSRF validation on POST, Host header allowlist, no
+        outbound network calls, and strict declarative dashboard JSON validation
+        (no code, HTML, or URLs).
+    - path: "Dockerfile"
+      instructions: >
+        Verify non-root user, multi-stage build, pinned base-image digest, and
+        no secrets or privileged configuration.
+    - path: "docker-compose*.yml"
+      instructions: >
+        Verify read_only: true, cap_drop: [ALL], no-new-privileges:true, no
+        privileged mode, no Docker socket mount, read-only /reports mount, and
+        port bound to 127.0.0.1 only by default.

@@ -44,6 +44,63 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[ui,dev]"
       - name: Run tests
         run: pytest -v --tb=short
+
+  security-python:
+    name: Python Security (pip-audit, Semgrep, zizmor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Audit UI dependencies (pip-audit)
+        run: |
+          pip install -e ".[ui]" pip-audit
+          pip-audit
+      - name: Semgrep scan
+        run: |
+          pip install semgrep
+          semgrep scan --config auto --error
+      - name: zizmor workflow audit
+        run: |
+          pip install zizmor
+          zizmor .github/workflows
+
+  # Supply verified 40-char SHAs before enabling Hadolint, Trivy, and Gitleaks:
+  # - hadolint/hadolint-action
+  # - aquasecurity/trivy-action
+  # - gitleaks/gitleaks-action
+  docker-smoke:
+    name: Docker Build & Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Build UI image (no push)
+        run: docker build -t secscan-ui:ci .
+      - name: Container smoke test (health, headers, non-root, read-only)
+        run: |
+          mkdir -p /tmp/ci-reports
+          docker run -d --name secscan-ui-smoke \
+            --read-only \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges:true \
+            --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+            -v /tmp/ci-reports:/reports:ro \
+            -p 127.0.0.1:8080:8080 \
+            secscan-ui:ci
+          trap 'docker rm -f secscan-ui-smoke' EXIT
+          sleep 3
+          curl -fsS http://127.0.0.1:8080/health | grep -q '"status":"ok"'
+          HEADERS=$(curl -sSI http://127.0.0.1:8080/)
+          echo "$HEADERS" | grep -qi 'Content-Security-Policy:'
+          echo "$HEADERS" | grep -qi 'X-Content-Type-Options: nosniff'
+          echo "$HEADERS" | grep -qi 'Referrer-Policy: no-referrer'
+          test "$(docker exec secscan-ui-smoke id -u)" != "0"
+          ! docker exec secscan-ui-smoke sh -c 'touch /app/write_test 2>/dev/null'
