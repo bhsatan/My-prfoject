@@ -20,10 +20,10 @@ how_to_fix:
     - "Follow the wizard to choose how to unlock your drive and where to save your recovery key."
     - "Note: BitLocker requires Windows Pro, Enterprise, or Education. Windows Home users can use 'Device Encryption' in Settings > Privacy & security > Device encryption if the hardware supports it."
   linux:
-    - "Full disk encryption is best set up during OS installation."
-    - "If you did not enable it at install time, you can encrypt your home directory with: sudo apt install ecryptfs-utils && sudo ecryptfs-migrate-home -u YOUR_USERNAME"
-    - "For full-disk encryption on an existing system, back up all data first, then reinstall with the 'Encrypt the new installation' option checked."
+    - 'Check the current layout with: lsblk -f   (look for crypto_LUKS above your root filesystem)'
+    - 'To encrypt an existing system, back up your data, then reinstall with full-disk (LUKS) encryption selected.'
+    - 'In a virtual machine, encrypting the host drive may be enough.'
 difficulty: "hard"
-source: >
-  Microsoft – BitLocker overview:
-  https://learn.microsoft.com/en-us/windows/security/operating-system-security/data-protection/bitlocker/
+source:
+  windows: "Microsoft – BitLocker overview: https://learn.microsoft.com/en-us/windows/security/operating-system-security/data-protection/bitlocker/"
+  linux: "cryptsetup (LUKS) project: https://gitlab.com/cryptsetup/cryptsetup"

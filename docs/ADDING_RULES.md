@@ -30,6 +30,10 @@ how_to_fix:                   # Must include a non-empty list for every OS in ap
     - "Step 2."
 difficulty: "easy"            # easy | medium | hard
 source: "Real, publicly verifiable vendor documentation or hardening URL"
+# or one per platform:
+# source:
+#   windows: "..."
+#   linux: "..."
 ```
 
 ### Supported Condition Operators

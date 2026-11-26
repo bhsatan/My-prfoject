@@ -45,7 +45,6 @@ class FirewallCollector(Collector):
                 },
             ]
         return [
-            {"type": "command", "detail": "systemctl is-active ufw"},
             {"type": "command", "detail": "systemctl is-active firewalld"},
             {"type": "file_read", "detail": "/etc/ufw/ufw.conf"},
         ]
@@ -99,23 +98,12 @@ class FirewallCollector(Collector):
     # ----- Linux -----
 
     def _collect_linux(self) -> dict[str, Any]:
-        # Try ufw first
-        stdout, _, rc = safe_run(["systemctl", "is-active", "ufw"])
-        if rc == 0 and "active" in stdout.strip().lower():
-            return {
-                "firewall": {
-                    "all_profiles_enabled": True,
-                    "backend": "ufw",
-                    "detail": "ufw is active.",
-                },
-            }
-
-        # Check ufw.conf as fallback
+        # ufw.service reports "active" even after "ufw disable", so only the
+        # ENABLED flag in ufw.conf says whether ufw is filtering.
         try:
             with open("/etc/ufw/ufw.conf", encoding="utf-8") as fh:
                 for line in fh:
-                    stripped = line.strip()
-                    if stripped.upper().startswith("ENABLED=") and "yes" in stripped.lower():
+                    if line.strip().lower().replace('"', "") == "enabled=yes":
                         return {
                             "firewall": {
                                 "all_profiles_enabled": True,

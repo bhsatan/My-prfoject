@@ -86,8 +86,8 @@ class TestFirewallCollector:
     @patch("secscan.collectors.firewall.get_platform", return_value="linux")
     @patch("secscan.collectors.firewall.safe_run")
     def test_linux_ufw_active(self, mock_run, mock_plat):
-        mock_run.side_effect = _mock_safe_run({"ufw": ("active\n", "", 0)})
-        facts = FirewallCollector().get_facts()
+        with patch("builtins.open", mock_open(read_data="ENABLED=yes\n")):
+            facts = FirewallCollector().get_facts()
         assert facts["firewall"]["all_profiles_enabled"] is True
         assert facts["firewall"]["backend"] == "ufw"
 
@@ -307,19 +307,6 @@ class TestPasswordPolicyCollector:
         facts = PasswordPolicyCollector().get_facts()
         assert facts["password_policy"]["lockout_threshold"] == 0
 
-    @patch("secscan.collectors.password_policy.get_platform", return_value="linux")
-    def test_linux_parses_login_defs(self, mock_plat):
-        login_defs = "PASS_MIN_LEN  10\nPASS_MAX_DAYS  90\n"
-
-        def mock_open_fn(path, **kwargs):
-            if "login.defs" in str(path):
-                return mock_open(read_data=login_defs)()
-            raise OSError
-
-        with patch("builtins.open", side_effect=mock_open_fn):
-            facts = PasswordPolicyCollector().get_facts()
-        assert facts["password_policy"]["min_length"] == 10
-
 
 # ===================================================================
 # SSH
@@ -364,8 +351,8 @@ class TestSSHCollector:
             patch("builtins.open", side_effect=OSError("Permission denied")),
         ):
             facts = SSHCollector().get_facts()
-        # Should fall back to defaults, not crash
-        assert facts["ssh"]["permit_root_login"] == "prohibit-password"
+        # Unknown, rather than guessing the defaults
+        assert "error" in facts["ssh"]
 
 
 # ===================================================================

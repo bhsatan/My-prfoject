@@ -53,12 +53,12 @@ Before any real scan runs, SecScan prints a permission notice listing what will 
 
 | Area | Windows (read-only) | Linux (read-only) | Needs Admin/Root? |
 |---|---|---|---|
-| **Firewall** | `Get-NetFirewallProfile` (PowerShell) | `systemctl is-active ufw`, `systemctl is-active firewalld`, `/etc/ufw/ufw.conf` | No |
+| **Firewall** | `Get-NetFirewallProfile` (PowerShell) | `systemctl is-active firewalld`, `/etc/ufw/ufw.conf` | No |
 | **Disk Encryption** | `Get-BitLockerVolume` (PowerShell) | `lsblk -o NAME,TYPE,FSTYPE --json`, `/etc/crypttab` | Windows: Yes; Linux: No |
 | **Antivirus** | `Get-MpComputerStatus` (PowerShell) | — | No |
 | **Listening Ports** | `Get-NetTCPConnection -State Listen` (PowerShell) | `ss -tlnp` | No (process names on Linux may need root) |
 | **User Accounts & Admins** | `Get-LocalUser -Name Guest`, `Get-LocalGroupMember -Group 'Administrators'` | `/etc/passwd`, `/etc/group` (`sudo`/`wheel`/`admin`) | No |
-| **Password & Lockout Policy** | `net accounts` | `/etc/login.defs`, `/etc/pam.d/common-password`, `/etc/pam.d/system-auth`, `/etc/pam.d/common-auth` | No |
+| **Password & Lockout Policy** | `net accounts` | `/etc/pam.d/common-password`, `/etc/pam.d/system-auth`, `/etc/pam.d/common-auth`, `/etc/security/pwquality.conf` (and `.d/`), `/etc/security/faillock.conf` | No |
 | **SSH Server** | — | `/etc/ssh/sshd_config`, `/etc/ssh/sshd_config.d/*.conf`, `systemctl is-active sshd`/`ssh` | No (unless `sshd_config` is restricted) |
 | **Remote Access (RDP / SMBv1)** | Registry `HKLM:\...\Terminal Server\fDenyTSConnections`, `...\RDP-Tcp\UserAuthentication`, `Get-SmbServerConfiguration` | — | SMBv1: Yes; RDP: No |
 | **Automatic Login** | Registry `HKLM:\...\Winlogon\AutoAdminLogon` | `/etc/gdm3/custom.conf`, `/etc/gdm/custom.conf`, `/etc/lightdm/lightdm.conf`, `/etc/sddm.conf` | No |
@@ -121,8 +121,9 @@ Findings are sorted so the most urgent, easiest-to-fix problems appear first:
 - **Windows third-party antivirus**: `AV-001` checks Windows Defender via `Get-MpComputerStatus`; third-party AV products are not queried in v0.1.
 - **Linux variations**:
   - Firewall checks `ufw` and `firewalld`; custom `nftables`/`iptables` setups without those services report `false` (`fail`).
-  - `sshd_config` parser reads main config and `sshd_config.d/*.conf` drop-ins, but does not evaluate conditional `Match` blocks.
-  - Password policy falls back to distro defaults (`min_length: 5`, `lockout_threshold: 0`) if PAM/login.defs lines are absent or unreadable.
+  - `sshd_config` parser follows `Include` lines, but does not evaluate conditional `Match` blocks. It reports `unknown` if the main config cannot be read.
+  - Password policy reports `unknown` if PAM files are unreadable; otherwise it applies the PAM module defaults.
+  - Disk encryption passes if any LUKS volume exists, even if it is not the OS drive.
 - **Skipped in v0.1**: OS patch currency (requires network/patch DB), screen-lock timeout (fragmented across Linux DEs), and backup presence (high false-negative risk).
 
 ---

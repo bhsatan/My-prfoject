@@ -131,7 +131,11 @@ def _load_single_rule(rule_path: Path, seen_ids: set[str]) -> Rule:
         why_it_matters=str(data["why_it_matters"]).strip(),
         how_to_fix={os_name: list(steps) for os_name, steps in data["how_to_fix"].items()},
         difficulty=data["difficulty"],
-        source=str(data["source"]).strip(),
+        source=(
+            {os_name: str(text).strip() for os_name, text in data["source"].items()}
+            if isinstance(data["source"], dict)
+            else str(data["source"]).strip()
+        ),
     )
 
 

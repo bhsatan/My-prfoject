@@ -20,11 +20,10 @@ how_to_fix:
     - "Double-click 'Minimum password length' and set it to at least 8."
     - "Click OK and close the window."
   linux:
-    - "Open a terminal and edit the PAM password configuration."
-    - "On Debian/Ubuntu: sudo nano /etc/pam.d/common-password"
-    - "On Fedora/RHEL: sudo nano /etc/pam.d/system-auth"
-    - "Find the line with 'pam_pwquality.so' (or 'pam_cracklib.so') and add or update: minlen=8"
-    - "Save the file. New passwords will now require at least 8 characters."
+    - 'Debian/Ubuntu/Kali: install the quality module first: sudo apt install libpam-pwquality'
+    - 'Edit /etc/security/pwquality.conf and set: minlen = 12'
+    - 'If the pam_pwquality or pam_unix line in your PAM files has its own minlen=, update or remove it, as it overrides the config file.'
+    - 'Test with: passwd   (existing passwords are not rechecked)'
 difficulty: "easy"
 source: >
   NIST SP 800-63B, Section 5.1.1 – Memorized Secret length requirements:

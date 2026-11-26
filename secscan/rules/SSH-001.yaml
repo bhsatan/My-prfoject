@@ -16,11 +16,12 @@ why_it_matters: >
   audit trail.
 how_to_fix:
   linux:
-    - "Open a terminal and edit the SSH configuration: sudo nano /etc/ssh/sshd_config"
-    - "Find the line 'PermitRootLogin' and change it to: PermitRootLogin no"
-    - "If the line does not exist, add it."
-    - "Save the file and restart SSH: sudo systemctl restart sshd"
-    - "Important: make sure you have another account with sudo access before doing this, so you do not lock yourself out."
+    - 'If you do not need to SSH into this machine, disable the server: sudo systemctl disable --now ssh   (the service is sshd on Fedora/RHEL)'
+    - 'Make sure another account with sudo access can log in.'
+    - 'Create /etc/ssh/sshd_config.d/00-hardening.conf containing: PermitRootLogin no'
+    - 'Check the syntax: sudo sshd -t'
+    - 'Apply it: sudo systemctl restart ssh   (sshd on Fedora/RHEL)'
+    - 'Confirm the effective settings: sudo sshd -T'
 difficulty: "easy"
 source: >
   OpenSSH sshd_config manual – PermitRootLogin:

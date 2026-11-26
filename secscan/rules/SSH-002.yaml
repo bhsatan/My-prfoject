@@ -15,12 +15,12 @@ why_it_matters: >
   Disabling password authentication forces everyone to use keys.
 how_to_fix:
   linux:
-    - "First, make sure you have set up SSH key authentication and can log in with your key."
-    - "Edit the SSH configuration: sudo nano /etc/ssh/sshd_config"
-    - "Find the line 'PasswordAuthentication' and change it to: PasswordAuthentication no"
-    - "Also set: KbdInteractiveAuthentication no"
-    - "Save the file and restart SSH: sudo systemctl restart sshd"
-    - "Warning: if you disable password auth before setting up a key, you will be locked out of SSH."
+    - 'If you do not need to SSH into this machine, disable the server: sudo systemctl disable --now ssh   (the service is sshd on Fedora/RHEL)'
+    - 'Set up SSH key login and confirm it works first, or you will be locked out.'
+    - 'Create /etc/ssh/sshd_config.d/00-hardening.conf containing: PasswordAuthentication no and, on its own line, KbdInteractiveAuthentication no'
+    - 'Check the syntax: sudo sshd -t'
+    - 'Apply it: sudo systemctl restart ssh   (sshd on Fedora/RHEL)'
+    - 'Confirm the effective settings: sudo sshd -T'
 difficulty: "medium"
 source: >
   OpenSSH sshd_config manual – PasswordAuthentication:

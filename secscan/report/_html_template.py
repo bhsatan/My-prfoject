@@ -93,6 +93,13 @@ HTML_TEMPLATE = """\
   .footer { text-align: center; margin-top: 2rem; padding-top: 1rem;
             border-top: 1px solid var(--surface); color: var(--muted);
             font-size: 0.8rem; }
+  .update-btn {
+    display: inline-block; margin-top: 0.75rem; padding: 0.45rem 1rem;
+    background: var(--surface); color: #38bdf8; border: 1px solid #38bdf8;
+    border-radius: 6px; text-decoration: none; font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .update-btn:hover { background: #0c4a6e; color: #e0f2fe; }
 </style>
 </head>
 <body>
@@ -132,7 +139,10 @@ HTML_TEMPLATE = """\
 {{FINDINGS}}
 
 <div class="footer">
-  SecScan v0.1.0 · Open Source · Apache-2.0 License
+  <div>SecScan v{{VERSION}} · Open Source · Apache-2.0 License</div>
+  <a class="update-btn" href="{{RELEASES_URL}}" target="_blank" rel="noopener noreferrer">
+    Check for Updates (v{{VERSION}})
+  </a>
 </div>
 
 </body>

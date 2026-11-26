@@ -7,7 +7,10 @@ Reads ``/etc/ssh/sshd_config`` (and drop-in overrides in
 
 from __future__ import annotations
 
+import glob
 import logging
+import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -50,8 +53,10 @@ class SSHCollector(Collector):
                 service_running = True
                 break
 
-        # Parse config
+        # Parse config. Without a readable main config we know nothing.
         config = self._parse_sshd_config()
+        if config is None:
+            return {"ssh": {"error": "Cannot read /etc/ssh/sshd_config (is sshd installed?)."}}
 
         permit_root = config.get(
             "permitrootlogin",
@@ -77,40 +82,42 @@ class SSHCollector(Collector):
             },
         }
 
-    def _parse_sshd_config(self) -> dict[str, str]:
-        """Parse sshd_config and drop-in overrides.
+    def _parse_sshd_config(self) -> dict[str, str] | None:
+        """Parse the global section of sshd_config, following ``Include``.
 
-        Returns a dict of ``{directive_lowercase: last_value}``.
-        Later files and later lines override earlier ones (matching sshd
-        behaviour for most directives — ``Match`` blocks are ignored for
-        simplicity in v0.1).
+        Like sshd, the first value seen for a directive wins and included
+        files are read at the point of the ``Include`` line.  ``Match`` blocks
+        are ignored.  Returns ``None`` if the main config cannot be read.
         """
         result: dict[str, str] = {}
-
-        # Main config
-        self._parse_file(Path("/etc/ssh/sshd_config"), result)
-
-        # Drop-in overrides
-        drop_in_dir = Path("/etc/ssh/sshd_config.d")
-        if drop_in_dir.is_dir():
-            for conf in sorted(drop_in_dir.glob("*.conf")):
-                self._parse_file(conf, result)
-
+        if not self._parse_file(Path("/etc/ssh/sshd_config"), result):
+            return None
         return result
 
-    @staticmethod
-    def _parse_file(path: Path, result: dict[str, str]) -> None:
-        """Parse a single sshd config file into *result*."""
+    @classmethod
+    def _parse_file(cls, path: Path, result: dict[str, str], depth: int = 0) -> bool:
+        """Parse one config file into *result*.  Returns False if unreadable."""
         try:
             with open(path, encoding="utf-8") as fh:
-                for line in fh:
-                    stripped = line.strip()
-                    if not stripped or stripped.startswith("#"):
-                        continue
-                    # Lines are "Directive value" (space or tab separated)
-                    parts = stripped.split(None, 1)
-                    if len(parts) == 2:
-                        directive, value = parts
-                        result[directive.lower()] = value
+                lines = fh.readlines()
         except OSError as exc:
             logger.debug("Cannot read %s: %s", path, exc)
+            return False
+
+        for line in lines:
+            # Directives are "Key value" or "Key=value"
+            parts = re.split(r"[ \t=]+", line.strip(), maxsplit=1)
+            if len(parts) != 2 or parts[0].startswith("#"):
+                continue
+            directive, value = parts[0].lower(), parts[1].strip().strip('"')
+            if directive == "match":
+                break
+            if directive == "include" and depth < 8:
+                for pattern in value.split():
+                    # Relative patterns are relative to /etc/ssh
+                    full = os.path.join("/etc/ssh", pattern.strip('"'))
+                    for included in sorted(glob.glob(full)):
+                        cls._parse_file(Path(included), result, depth + 1)
+                continue
+            result.setdefault(directive, value)
+        return True

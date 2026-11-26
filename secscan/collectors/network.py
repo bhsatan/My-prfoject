@@ -31,7 +31,7 @@ _RISKY_PORTS: frozenset[int] = frozenset(
     }
 )
 
-_ALL_INTERFACES = frozenset({"0.0.0.0", "::", "[::]"})  # noqa: S104
+_ALL_INTERFACES = frozenset({"0.0.0.0", "::", "[::]", "*"})  # noqa: S104
 
 
 class NetworkCollector(Collector):
@@ -113,7 +113,7 @@ class NetworkCollector(Collector):
             except ValueError:
                 continue
             # Clean up addr
-            addr = addr.strip("[]")
+            addr = addr.split("%")[0].strip("[]")
             entries.append({"LocalAddress": addr, "LocalPort": port})
 
         return self._build_facts(entries, addr_key="LocalAddress", port_key="LocalPort")
