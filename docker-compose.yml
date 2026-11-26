@@ -1,0 +1,43 @@
+services:
+  secscan-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: "${HOST_UID:?Set HOST_UID in .env (run 'id -u' on Linux)}:${HOST_GID:?Set HOST_GID in .env (run 'id -g' on Linux)}"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: "0.5"
+    pids_limit: 64
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    volumes:
+      - ./reports:/reports:ro
+      - secscan_ui_data:/data:rw
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - secscan_internal
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  secscan_ui_data:
+
+networks:
+  secscan_internal:
+    internal: true

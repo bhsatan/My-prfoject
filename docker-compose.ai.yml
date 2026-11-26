@@ -1,0 +1,14 @@
+# Optional override enabling outbound network ONLY when you explicitly opt into
+# the AI Assistant panel. Usage:
+#   SECSCAN_AI_API_KEY=... docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d
+services:
+  secscan-ui:
+    environment:
+      - SECSCAN_AI_API_KEY=${SECSCAN_AI_API_KEY:-}
+    networks:
+      - secscan_internal
+      - ai_egress
+
+networks:
+  ai_egress:
+    driver: bridge

@@ -178,6 +178,44 @@ ruff check .
 ruff format --check .
 ```
 
+---
+
+## Web UI & Docker (v0.2)
+
+### Why the Scanner Is Not in the Container
+
+SecScan splits **host scanning** from **report viewing**:
+- **Scanner (`secscan`)** runs natively on your Windows or Linux host because Windows checks (PowerShell, Registry, Defender, BitLocker) cannot run in a Linux container, and putting a scanner in a container would require `--privileged` or host mounts that weaken isolation.
+- **Web UI (`secscan_ui`)** runs inside a hardened, non-root, read-only Docker container that mounts `./reports` **read-only** (`:ro`) and listens only on `127.0.0.1:8080`.
+
+### 1. Run a Scan Natively
+
+```bash
+secscan scan --format json --output ./reports
+```
+
+Report files are written with owner-only permissions (`0600` on Linux).
+
+### 2. Configure `.env` for Report Permissions
+
+Create `.env` from `.env.example` and set `HOST_UID` and `HOST_GID` (Compose fails closed if unset):
+
+- **Linux:** Run `id -u` and `id -g`, and put those values in `.env` (e.g. `HOST_UID=1000`, `HOST_GID=1000`). This lets the container read your `0600` reports without loosening file permissions to world-readable.
+- **Docker Desktop on Windows:** Bind-mounted folders from Windows are owned by your WSL2 user inside the Linux VM (typically `HOST_UID=1000`, `HOST_GID=1000`).
+
+### 3. Start, View, and Clean Up
+
+```bash
+# Resolve the python:3.12-slim digest first and place it in Dockerfile:
+docker buildx imagetools inspect python:3.12-slim
+
+# Start the Web UI on http://127.0.0.1:8080
+docker compose up -d --build
+
+# Stop and remove the container
+docker compose down
+```
+
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
