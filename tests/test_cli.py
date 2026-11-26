@@ -125,22 +125,3 @@ class TestCliFormats:
         assert rc == 1
         captured = capsys.readouterr()
         assert "Unsupported platform" in captured.err
-
-
-class TestCliUpdate:
-    def test_update_prints_instructions_without_opening_browser(self, capsys) -> None:
-        with patch("secscan.cli.webbrowser.open") as mock_open:
-            rc = main(["update"])
-
-        assert rc == 0
-        mock_open.assert_not_called()
-        out = capsys.readouterr().out
-        assert "v0.1.0" in out
-        assert "https://github.com/bhsatan/Sescan/releases" in out
-
-    def test_update_open_launches_browser(self) -> None:
-        with patch("secscan.cli.webbrowser.open") as mock_open:
-            rc = main(["update", "--open"])
-
-        assert rc == 0
-        mock_open.assert_called_once_with("https://github.com/bhsatan/Sescan/releases")

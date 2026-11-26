@@ -12,7 +12,6 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-import webbrowser
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -121,16 +120,6 @@ def _build_parser() -> argparse.ArgumentParser:
         "-v",
         action="store_true",
         help="Enable verbose logging.",
-    )
-
-    update_cmd = sub.add_parser(
-        "update",
-        help="Show how to update SecScan (no automatic network calls).",
-    )
-    update_cmd.add_argument(
-        "--open",
-        action="store_true",
-        help="Open the GitHub Releases page in your default browser.",
     )
 
     return parser
@@ -285,25 +274,6 @@ def _report_filename(ext: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-_RELEASES_URL = "https://github.com/bhsatan/Sescan/releases"
-
-
-def _handle_update(*, open_browser: bool = False) -> int:
-    """Print manual update instructions and optionally open the Releases page."""
-    print(f"\n  SecScan current version: v{__version__}")
-    print(f"  Releases page:           {_RELEASES_URL}")
-    print("\n  To update (run manually):")
-    print("    # From a SecScan checkout (change to the SecScan directory first):")
-    print("    cd /path/to/secscan && git pull && pip install -e .")
-    print(
-        f"    # Or from anywhere: pip install --upgrade "
-        f"git+{_RELEASES_URL.removesuffix('/releases')}.git\n"
-    )
-    if open_browser:
-        webbrowser.open(_RELEASES_URL)
-    return 0
-
-
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point. Returns exit code."""
     parser = _build_parser()
@@ -332,9 +302,6 @@ def main(argv: list[str] | None = None) -> int:
             skip_confirm=args.yes,
             ai_explain=args.ai_explain,
         )
-
-    if args.command == "update":
-        return _handle_update(open_browser=args.open)
 
     parser.print_help()
     return 0
