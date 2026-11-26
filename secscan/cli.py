@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from secscan import __version__
+from secscan.ai_explainer import get_api_key_from_env
 from secscan.collectors import get_all_collectors
 from secscan.collectors.base import get_platform
 from secscan.engine.evaluator import evaluate
@@ -106,6 +107,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Skip the permission confirmation prompt.",
     )
     scan.add_argument(
+        "--ai-explain",
+        action="store_true",
+        default=False,
+        help=(
+            "Optional (disabled by default): request plain-language AI "
+            "explanations using SECSCAN_AI_API_KEY."
+        ),
+    )
+    scan.add_argument(
         "--verbose",
         "-v",
         action="store_true",
@@ -150,6 +160,7 @@ def _handle_scan(
     fmt: str,
     output_dir: str | None,
     skip_confirm: bool,
+    ai_explain: bool = False,
 ) -> int:
     """Run the full scan pipeline. Returns exit code 0."""
     # Detect platform
@@ -225,6 +236,18 @@ def _handle_scan(
         render_html(result, output_path=file_path)
         print(f"  Report saved to: {file_path}")
 
+    if ai_explain:
+        if get_api_key_from_env() is None:
+            print(
+                "\n  AI explainer requested, but SECSCAN_AI_API_KEY is not set. "
+                "Skipping AI explanations."
+            )
+        else:
+            print(
+                "\n  AI explainer is interface-only in v0.1 "
+                "(no LLM provider is configured yet; no network calls were made)."
+            )
+
     return 0
 
 
@@ -277,6 +300,7 @@ def main(argv: list[str] | None = None) -> int:
             fmt=args.format,
             output_dir=args.output,
             skip_confirm=args.yes,
+            ai_explain=args.ai_explain,
         )
 
     parser.print_help()
