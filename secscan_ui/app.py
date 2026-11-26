@@ -70,20 +70,25 @@ def create_app(
     data_dir: Path | None = None,
     allowed_hosts: set[str] | None = None,
     rate_limit_per_minute: int = 120,
+    allow_remote: bool = False,
 ) -> Flask:
     """Create and configure the hardened SecScan Web UI Flask app."""
     # Fail closed if someone configures a non-localhost bind without explicit opt-in
     bind_host = os.environ.get("SECSCAN_UI_BIND_HOST", "127.0.0.1").strip()
-    if bind_host not in ("127.0.0.1", "localhost") and (
-        os.environ.get("SECSCAN_UI_ALLOW_REMOTE") != "1"
+    if (
+        bind_host not in ("127.0.0.1", "::1", "localhost")
+        and not allow_remote
+        and os.environ.get("SECSCAN_UI_ALLOW_REMOTE") != "1"
     ):
         raise RuntimeError(
             f"Refusing to bind to non-localhost '{bind_host}' without explicit "
             "SECSCAN_UI_ALLOW_REMOTE=1 opt-in and authentication."
         )
 
-    resolved_reports = reports_dir or Path(os.environ.get("SECSCAN_REPORTS_DIR", "/reports"))
-    resolved_data = data_dir or Path(os.environ.get("SECSCAN_DATA_DIR", "/data"))
+    resolved_reports = reports_dir or Path(os.environ.get("SECSCAN_REPORTS_DIR", "output"))
+    resolved_data = data_dir or Path(
+        os.environ.get("SECSCAN_DATA_DIR", str(Path.home() / ".secscan" / "ui_data"))
+    )
 
     env_hosts = os.environ.get("SECSCAN_UI_ALLOWED_HOSTS", "")
     extra_hosts = {h.strip().lower() for h in env_hosts.split(",") if h.strip()}

@@ -122,6 +122,32 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Enable verbose logging.",
     )
 
+    ui = sub.add_parser("ui", help="Start the local-only Web UI viewer.")
+    ui.add_argument("--host", default="127.0.0.1", help="Bind address (default: 127.0.0.1).")
+    ui.add_argument("--port", type=int, default=8080, help="Bind port (default: 8080).")
+    ui.add_argument(
+        "--reports-dir",
+        type=Path,
+        default=None,
+        help="Directory containing v1 JSON reports (default: ./output).",
+    )
+    ui.add_argument(
+        "--data-dir",
+        type=Path,
+        default=None,
+        help="Directory for custom dashboards (default: ~/.secscan/ui_data).",
+    )
+    ui.add_argument(
+        "--allow-remote",
+        action="store_true",
+        help="Allow binding to a non-loopback address (exposes unauthenticated UI).",
+    )
+    ui.add_argument(
+        "--allow-privileged",
+        action="store_true",
+        help="Allow running as root/Administrator.",
+    )
+
     return parser
 
 
@@ -274,6 +300,34 @@ def _report_filename(ext: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _import_ui_runner():
+    """Lazily import the optional Web UI runner."""
+    from secscan_ui.__main__ import run_ui
+
+    return run_ui
+
+
+def _handle_ui(args: argparse.Namespace) -> int:
+    """Start the native Web UI, failing cleanly if the [ui] extra is missing."""
+    try:
+        run_ui = _import_ui_runner()
+        return run_ui(
+            host=args.host,
+            port=args.port,
+            reports_dir=args.reports_dir,
+            data_dir=args.data_dir,
+            allow_remote=args.allow_remote,
+            allow_privileged=args.allow_privileged,
+        )
+    except ImportError:
+        print(
+            "Error: The optional Web UI dependencies are not installed.\n"
+            'Install them with: pip install -e ".[ui]"',
+            file=sys.stderr,
+        )
+        return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point. Returns exit code."""
     parser = _build_parser()
@@ -302,6 +356,9 @@ def main(argv: list[str] | None = None) -> int:
             skip_confirm=args.yes,
             ai_explain=args.ai_explain,
         )
+
+    if args.command == "ui":
+        return _handle_ui(args)
 
     parser.print_help()
     return 0

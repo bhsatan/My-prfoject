@@ -125,3 +125,39 @@ class TestCliFormats:
         assert rc == 1
         captured = capsys.readouterr()
         assert "Unsupported platform" in captured.err
+
+
+class TestCliUi:
+    def test_ui_refuses_non_loopback_without_allow_remote(self, tmp_path: Path, capsys) -> None:
+        rc = main(["ui", "--host", "0.0.0.0", "--reports-dir", str(tmp_path)])  # noqa: S104
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert "--allow-remote" in err
+
+    def test_ui_refuses_privileged_without_allow_privileged(self, tmp_path: Path, capsys) -> None:
+        with patch("secscan_ui.__main__._is_privileged", return_value=True):
+            rc = main(["ui", "--reports-dir", str(tmp_path)])
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert "--allow-privileged" in err
+
+    def test_ui_missing_extra_prints_plain_message(self, tmp_path: Path, capsys) -> None:
+        with patch("secscan.cli._import_ui_runner", side_effect=ImportError("No module flask")):
+            rc = main(["ui", "--reports-dir", str(tmp_path)])
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert ".[ui]" in err
+
+    def test_ui_warns_on_world_readable_reports(self, tmp_path: Path, capsys) -> None:
+        report_file = tmp_path / "secscan_20261126T120000Z_deadbeef.json"
+        report_file.write_text("{}", encoding="utf-8")
+        with (
+            patch("secscan_ui.__main__._is_privileged", return_value=False),
+            patch("secscan_ui.__main__._is_world_readable", return_value=True),
+            patch("secscan_ui.__main__._serve") as mock_serve,
+        ):
+            rc = main(["ui", "--reports-dir", str(tmp_path), "--port", "8081"])
+        assert rc == 0
+        mock_serve.assert_called_once()
+        err = capsys.readouterr().err
+        assert "world-readable" in err.lower()
