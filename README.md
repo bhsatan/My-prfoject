@@ -45,6 +45,18 @@ secscan scan --format html --output ./output
 secscan scan --yes
 ```
 
+### Updating SecScan
+
+SecScan has no built-in auto-updater. Check the [GitHub Releases](https://github.com/bhsatan/Sescan/releases) page and update manually:
+
+```bash
+# From a SecScan checkout (change to the SecScan directory first):
+cd /path/to/secscan && git pull && pip install -e .
+
+# Or from anywhere:
+pip install --upgrade --force-reinstall git+https://github.com/bhsatan/Sescan.git
+```
+
 ---
 
 ## What SecScan Reads

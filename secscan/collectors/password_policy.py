@@ -27,8 +27,8 @@ class PasswordPolicyCollector(Collector):
                 return self._collect_windows()
             return self._collect_linux()
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Password policy collector error: %s", exc)
-            return {"password_policy": {"error": str(exc)}}
+            logger.warning("Policy collector failed (%s)", type(exc).__name__)
+            return {"password_policy": {"error": f"Collection failed ({type(exc).__name__})"}}
 
     def get_dry_run_info(self) -> list[dict[str, str]]:
         try:

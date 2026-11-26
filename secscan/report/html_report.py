@@ -16,8 +16,6 @@ from secscan import __version__
 from secscan.report._html_template import HTML_TEMPLATE
 from secscan.scorer.scorer import ScoreResult
 
-RELEASES_URL = "https://github.com/bhsatan/Sescan/releases"
-
 
 def render_html(result: ScoreResult, *, output_path: Path | None = None) -> str:
     """Render the scan results to a self-contained HTML string.
@@ -45,7 +43,6 @@ def render_html(result: ScoreResult, *, output_path: Path | None = None) -> str:
     html = html.replace("{{SEVERITY_CHART}}", severity_chart)
     html = html.replace("{{FINDINGS}}", findings_html)
     html = html.replace("{{VERSION}}", __version__)
-    html = html.replace("{{RELEASES_URL}}", RELEASES_URL)
 
     if output_path is not None:
         output_path.parent.mkdir(parents=True, exist_ok=True)

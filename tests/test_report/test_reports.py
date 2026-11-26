@@ -164,8 +164,9 @@ class TestHtmlReport:
         assert out_file.is_file()
         assert "SecScan Security Posture Report" in out_file.read_text(encoding="utf-8")
 
-    def test_contains_update_button(self) -> None:
+    def test_footer_contains_version_and_date_without_external_links(self) -> None:
         result = _sample_result()
         html = render_html(result)
-        assert "Check for Updates (v0.1.0)" in html
-        assert "https://github.com/bhsatan/Sescan/releases" in html
+        assert "SecScan v0.1.0 · Generated:" in html
+        assert "Check for Updates" not in html
+        assert "github.com/bhsatan/Sescan/releases" not in html

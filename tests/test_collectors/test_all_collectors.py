@@ -307,6 +307,17 @@ class TestPasswordPolicyCollector:
         facts = PasswordPolicyCollector().get_facts()
         assert facts["password_policy"]["lockout_threshold"] == 0
 
+    @patch(
+        "secscan.collectors.password_policy.get_platform",
+        side_effect=RuntimeError("boom FAKE_SECRET_12345"),
+    )
+    def test_exception_does_not_log_secret_and_returns_error(self, _mock_plat, caplog):
+        with caplog.at_level("WARNING"):
+            facts = PasswordPolicyCollector().get_facts()
+        assert "FAKE_SECRET_12345" not in caplog.text
+        assert "RuntimeError" in caplog.text
+        assert facts["password_policy"]["error"] == "Collection failed (RuntimeError)"
+
 
 # ===================================================================
 # SSH
