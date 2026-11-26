@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -302,6 +303,9 @@ class DashboardStore:
 
         validated = validate_dashboard_dict(parsed)
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        target = self.data_dir / f"{validated['id']}.json"
-        target.write_text(json.dumps(validated, indent=2), encoding="utf-8")
+        base_dir = os.path.realpath(self.data_dir)
+        fullpath = os.path.realpath(os.path.join(base_dir, f"{validated['id']}.json"))
+        if not fullpath.startswith(base_dir + os.sep):
+            raise DashboardValidationError("Dashboard path resolves outside data directory.")
+        Path(fullpath).write_text(json.dumps(validated, indent=2), encoding="utf-8")
         return validated

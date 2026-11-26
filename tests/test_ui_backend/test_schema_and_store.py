@@ -254,3 +254,25 @@ class TestDashboardStore:
                     ],
                 }
             )
+
+    def test_save_dashboard_blocks_path_escape(self, tmp_path: Path, monkeypatch) -> None:
+        store = DashboardStore(tmp_path / "data")
+        payload = json.dumps(
+            {
+                "schema_version": "1.0",
+                "id": "escape-test",
+                "name": "Escape",
+                "widgets": [{"type": "score_gauge", "title": "Score", "filters": {}}],
+            }
+        )
+        monkeypatch.setattr(
+            "secscan_ui.store.validate_dashboard_dict",
+            lambda _d: {
+                "schema_version": "1.0",
+                "id": "../outside",
+                "name": "Escape",
+                "widgets": [{"type": "score_gauge", "title": "Score", "filters": {}}],
+            },
+        )
+        with pytest.raises(DashboardValidationError, match="outside"):
+            store.save_dashboard(payload)

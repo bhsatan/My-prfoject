@@ -12,7 +12,8 @@
   {% elif not latest %}
     <p>No valid scans available to explain.</p>
   {% else %}
-    <form method="post" action="{{ url_for('ai_assistant') }}">
+    <!-- Flask/Jinja2 uses the hidden csrf_token input below, not Django csrf_token tag -->
+    <form method="post" action="{{ url_for('ai_assistant') }}"> <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <label>Choose a finding to preview redacted payload:
         <select name="rule_id">
@@ -29,7 +30,8 @@
     {% if preview_payload %}
       <h2>Exact Redacted Payload</h2>
       <pre class="redacted">{{ preview_payload|clean }}</pre>
-      <form method="post" action="{{ url_for('ai_assistant') }}">
+      <!-- Flask/Jinja2 uses the hidden csrf_token input below, not Django csrf_token tag -->
+    <form method="post" action="{{ url_for('ai_assistant') }}"> <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="rule_id" value="{{ selected_rule_id|clean }}">
         <input type="hidden" name="confirm_send" value="yes">

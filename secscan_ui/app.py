@@ -105,7 +105,6 @@ def create_app(
     )
     app.config.update(
         DEBUG=False,
-        TESTING=False,
         SECRET_KEY=os.urandom(32),
         MAX_CONTENT_LENGTH=64 * 1024,  # 64 KiB
         SESSION_COOKIE_HTTPONLY=True,
