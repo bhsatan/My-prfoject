@@ -6,14 +6,22 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -31,19 +39,19 @@ jobs:
 
       - name: Extract changelog for this version
         id: changelog
+        env:
+          TAG_NAME: ${{ github.ref_name }}
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
+          VERSION="${TAG_NAME#v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          # Extract the section for this version from CHANGELOG.md
           python -c "
-          import re, sys
-          text = open('CHANGELOG.md').read()
-          pattern = rf'## \[{re.escape(VERSION)}\].*?\n(.*?)(?=\n## |\Z)'
+          import os, re
+          version = os.environ['TAG_NAME'].lstrip('v')
+          text = open('CHANGELOG.md', encoding='utf-8').read()
+          pattern = rf'## \[{re.escape(version)}\].*?\n(.*?)(?=\n## |\Z)'
           m = re.search(pattern, text, re.DOTALL)
           body = m.group(1).strip() if m else 'See CHANGELOG.md for details.'
-          # Write to file to avoid shell quoting issues
-          open('release_body.md', 'w').write(body)
+          open('release_body.md', 'w', encoding='utf-8').write(body)
           "
 
       - name: Create GitHub Release
