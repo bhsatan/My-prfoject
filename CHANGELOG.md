@@ -43,6 +43,3 @@ Initial prototype release.
 - No `shell=True`; all subprocess calls use argument lists.
 - No secrets in repo; API keys read from environment variables only.
 - Report files include warning banner about sensitive content.
-
-[Unreleased]: https://github.com/YOUR_USERNAME/secscan/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/YOUR_USERNAME/secscan/releases/tag/v0.1.0
