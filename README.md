@@ -56,7 +56,7 @@ cd /path/to/Sescan
 git fetch origin
 git log HEAD..origin/main --oneline
 git diff HEAD..origin/main
-git pull
+git merge --ff-only origin/main
 pip install -e .
 ```
 
