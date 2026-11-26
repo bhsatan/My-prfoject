@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Scans &amp; Trends — SecScan UI{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1>Score Over Time</h1>
+  {% if trends.points %}
+    <svg class="chart" viewBox="0 0 540 160" role="img" aria-labelledby="trend-title">
+      <title id="trend-title">Score trend across {{ trends.points|length }} scans</title>
+      {% set n = trends.points|length %}
+      {% for pt in trends.points %}
+        {% set x = 40 + (loop.index0 * 440 // (n - 1 if n > 1 else 1)) %}
+        {% set y = 130 - pt.score %}
+        <circle cx="{{ x }}" cy="{{ y }}" r="5" class="svg-dot" />
+        <text x="{{ x }}" y="{{ y - 10 }}" text-anchor="middle" class="svg-label">{{ pt.score }}</text>
+      {% endfor %}
+    </svg>
+  {% endif %}
+  <p class="chart-summary">{{ trend_summary|clean }}</p>
+
+  {% if trends.resolved or trends.newly_failed %}
+    <div class="grid-2">
+      <div>
+        <h3>Resolved Since Previous Scan</h3>
+        <ul>
+          {% for r in trends.resolved %}<li>{{ r|clean }}</li>{% else %}<li>None</li>{% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h3>New Gaps Since Previous Scan</h3>
+        <ul>
+          {% for n in trends.newly_failed %}<li>{{ n|clean }}</li>{% else %}<li>None</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>All Scans</h2>
+  {% if not scans %}
+    <p>No valid v1 reports found.</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>Scan Time</th>
+          <th>OS</th>
+          <th>Score</th>
+          <th>Passed / Failed / Unknown</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in scans %}
+          <tr>
+            <td>{{ s.scan_time_iso|clean }}</td>
+            <td>{{ s.os|upper }}</td>
+            <td>{{ s.score }}/100 ({{ s.grade }})</td>
+            <td>{{ s.summary.passed }} / {{ s.summary.failed }} / {{ s.summary.unknown }}</td>
+            <td><a class="btn btn-secondary" href="{{ url_for('scan_detail', scan_id=s.scan_id) }}">Open</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</section>
+
+{% if skipped %}
+  <section class="card">
+    <h2>Skipped / Invalid Reports</h2>
+    <ul>
+      {% for s in skipped %}
+        <li><strong>{{ s.filename|clean }}</strong>: {{ s.reason|clean }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+{% endblock %}

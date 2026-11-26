@@ -27,3 +27,9 @@ reviews:
         Verify every action uses a pinned 40-character commit SHA, permissions
         follow least privilege, persist-credentials is false on checkout, and no
         untrusted context values are interpolated into run steps.
+    - path: "secscan_ui/**"
+      instructions: >
+        Verify strict output escaping (no |safe, autoescape on), CSP without
+        unsafe-inline, CSRF validation on POST, Host header allowlist, no
+        outbound network calls, and strict declarative dashboard JSON validation
+        (no code, HTML, or URLs).

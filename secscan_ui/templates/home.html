@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Overview — SecScan UI{% endblock %}
+
+{% block content %}
+{% if not latest %}
+  <section class="card">
+    <h1>No Valid Scans Found</h1>
+    <p>Run <code>secscan scan --format json --output ./reports</code> on your host to generate a v1 report.</p>
+  </section>
+{% else %}
+  <section class="grid-2">
+    <div class="card">
+      <h1>Latest Security Score</h1>
+      <svg class="gauge" viewBox="0 0 180 110" role="img" aria-labelledby="gauge-title gauge-desc">
+        <title id="gauge-title">Security score {{ latest.score }} out of 100</title>
+        <desc id="gauge-desc">Grade {{ latest.grade }} on {{ latest.os }}</desc>
+        <path class="svg-bg" d="M 20 90 A 70 70 0 0 1 160 90" />
+        <text x="90" y="72" text-anchor="middle" class="svg-label">{{ latest.score }} / 100</text>
+        <text x="90" y="92" text-anchor="middle" class="svg-label">Grade {{ latest.grade }}</text>
+      </svg>
+      <p class="score-big">{{ latest.score }}/100 (Grade {{ latest.grade }})</p>
+      <p>{{ grade_text }}</p>
+      <p class="chart-summary">
+        Scanned on {{ latest.os|upper }} at {{ latest.scan_time_iso|clean }}
+        · <a class="btn btn-secondary" href="{{ url_for('scan_detail', scan_id=latest.scan_id) }}">View all findings</a>
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Insights</h2>
+      <ul>
+        {% for item in insights %}
+          <li>{{ item|clean }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  <section class="grid-4" aria-label="Gaps by severity">
+    {% for sev in ['critical', 'high', 'medium', 'low'] %}
+      {% set counts = latest.severity_summary.get(sev, {}) %}
+      <div class="stat">
+        <div class="num">{{ counts.get('fail', 0) }}</div>
+        <div class="lbl">{{ sev|upper }} failing ({{ counts.get('unknown', 0) }} unknown)</div>
+      </div>
+    {% endfor %}
+  </section>
+
+  <section class="card">
+    <h2>Fix These First (Top 5)</h2>
+    {% if not fixes %}
+      <p>No failing checks in the latest scan.</p>
+    {% else %}
+      {% for f in fixes %}
+        <details class="finding is-fail">
+          <summary>
+            <span class="badge sev-{{ f.severity }}">{{ f.severity }}</span>
+            <span>{{ f.title|clean }}</span>
+            <span class="badge status-fail">fail · {{ f.difficulty }}</span>
+          </summary>
+          <div class="finding-body">
+            <p>{{ f.detail|clean }}</p>
+            <p><strong>Why it matters:</strong> {{ f.why_it_matters|clean }}</p>
+            <ol>
+              {% for step in f.how_to_fix %}
+                <li>{{ step|clean }}</li>
+              {% endfor %}
+            </ol>
+            <p class="chart-summary">Source: {{ f.source|clean }}</p>
+          </div>
+        </details>
+      {% endfor %}
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Category Breakdown</h2>
+    <svg class="chart" viewBox="0 0 560 {{ categories|length * 34 + 20 }}" role="img" aria-labelledby="cat-title">
+      <title id="cat-title">Checks by category</title>
+      {% set max_total = (categories|map(attribute='total')|max) if categories else 1 %}
+      {% set bar_max = 180 %}
+      {% for row in categories %}
+        {% set y = loop.index0 * 34 + 16 %}
+        {% set fail_w = (row.fail * bar_max // max_total) if max_total else 0 %}
+        {% set unk_w = (row.unknown * bar_max // max_total) if max_total else 0 %}
+        {% set pass_w = (row.pass * bar_max // max_total) if max_total else 0 %}
+        <text x="4" y="{{ y + 12 }}" class="svg-label">{{ row.category|clean }}</text>
+        <rect x="145" y="{{ y }}" width="{{ fail_w }}" height="16" class="svg-bar-fail" />
+        <rect x="{{ 145 + fail_w }}" y="{{ y }}" width="{{ unk_w }}" height="16" class="svg-bar-unknown" />
+        <rect x="{{ 145 + fail_w + unk_w }}" y="{{ y }}" width="{{ pass_w }}" height="16" class="svg-bar-pass" />
+        <text x="335" y="{{ y + 12 }}" class="svg-label">
+          {{ row.pass }} pass, {{ row.fail }} fail, {{ row.unknown }} unknown
+        </text>
+      {% endfor %}
+    </svg>
+    <p class="chart-summary">
+      Showing {{ categories|length }} categories across {{ latest.summary.total_checks }} checks
+      ({{ latest.summary.passed }} passed, {{ latest.summary.failed }} failed, {{ latest.summary.unknown }} unknown).
+    </p>
+  </section>
+{% endif %}
+
+{% if skipped %}
+  <section class="card">
+    <h2>Skipped Report Files</h2>
+    <ul>
+      {% for s in skipped %}
+        <li><strong>{{ s.filename|clean }}</strong>: {{ s.reason|clean }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+{% endblock %}

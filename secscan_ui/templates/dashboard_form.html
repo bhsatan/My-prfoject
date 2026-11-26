@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Create Custom Dashboard — SecScan UI{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1>Create Custom Dashboard</h1>
+  {% if error %}
+    <div class="banner" role="alert">{{ error|clean }}</div>
+  {% endif %}
+
+  <!-- Flask/Jinja2 uses the hidden csrf_token input below, not Django csrf_token tag -->
+  <form method="post" action="{{ url_for('dashboard_new') }}"> <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <p><label>Dashboard ID (lowercase letters, digits, hyphens):<br>
+      <input type="text" name="dash_id" required pattern="[a-z0-9_-]{2,48}" value="{{ form_data.get('dash_id', '')|clean }}">
+    </label></p>
+    <p><label>Dashboard Name:<br>
+      <input type="text" name="name" required maxlength="60" value="{{ form_data.get('name', '')|clean }}">
+    </label></p>
+    <fieldset>
+      <legend>Widgets to include</legend>
+      {% for wt in widget_types %}
+        <label><input type="checkbox" name="widget_type" value="{{ wt }}"> {{ wt }}</label><br>
+      {% endfor %}
+    </fieldset>
+    <p><button type="submit">Save Dashboard</button></p>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Import Declarative Dashboard JSON</h2>
+  <!-- Flask/Jinja2 uses the hidden csrf_token input below, not Django csrf_token tag -->
+  <form method="post" action="{{ url_for('dashboard_import') }}"> <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <textarea name="dashboard_json" placeholder='{"schema_version":"1.0","id":"my-dash","name":"My View","widgets":[{"type":"score_gauge","title":"Score","filters":{}}]}'>{{ form_data.get('dashboard_json', '')|clean }}</textarea>
+    <p><button type="submit">Validate &amp; Import JSON</button></p>
+  </form>
+</section>
+{% endblock %}

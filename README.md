@@ -172,11 +172,40 @@ See [SECURITY.md](SECURITY.md) and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) 
 ## Development
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[ui,dev]"
 pytest -v
 ruff check .
 ruff format --check .
 ```
+
+---
+
+## Web UI (v0.2)
+
+SecScan includes an optional local-only Web UI (`secscan_ui`) that reads your v1 JSON reports **read-only** and displays scores, trends, plain-language insights, and step-by-step fixes in your browser. The UI never runs the scanner, never spawns subprocesses, and never modifies your host.
+
+### 1. Install the Optional UI Extra
+
+```bash
+pip install -e ".[ui]"
+```
+
+*(The core scanner remains dependency-free beyond `PyYAML`.)*
+
+### 2. Run a Scan and Start the Web UI
+
+```bash
+# 1. Generate a v1 JSON report (saved to ./output by default)
+secscan scan --format json --output ./output
+
+# 2. Start the local Web UI (listens on http://127.0.0.1:8080)
+secscan ui --reports-dir ./output
+```
+
+You can also run `python -m secscan_ui --reports-dir ./output`.
+
+- **Loopback only by default:** `secscan ui` binds to `127.0.0.1:8080` and refuses non-loopback addresses unless `--allow-remote` is explicitly passed (not recommended — the UI has no authentication).
+- **Non-privileged only by default:** Refuses to run as `root` or Windows `Administrator` unless `--allow-privileged` is passed.
 
 ## License
 

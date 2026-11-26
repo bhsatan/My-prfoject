@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Dashboards — SecScan UI{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1>Dashboards</h1>
+  <p>
+    {% for d in dashboards %}
+      <a class="btn {% if d.id != active.id %}btn-secondary{% endif %}" href="{{ url_for('dashboards_view', id=d.id) }}">
+        {{ d.name|clean }}
+      </a>
+    {% endfor %}
+    <a class="btn btn-secondary" href="{{ url_for('dashboard_new') }}">+ Custom Dashboard</a>
+    <a class="btn btn-secondary" href="{{ url_for('dashboard_export', dash_id=active.id) }}">Export JSON</a>
+  </p>
+</section>
+
+{% if not latest %}
+  <section class="card"><p>No valid scans found yet.</p></section>
+{% else %}
+  {% for item in widgets %}
+    {% set w = item.widget %}
+    <section class="card">
+      <h2>{{ w.title|clean }}</h2>
+      {% if w.type == 'score_gauge' %}
+        <p class="score-big">{{ latest.score }}/100 (Grade {{ latest.grade }})</p>
+        <p class="chart-summary">{{ latest.summary.passed }} passed, {{ latest.summary.failed }} failed, {{ latest.summary.unknown }} unknown.</p>
+      {% elif w.type == 'insight_cards' %}
+        <ul>{% for ins in item.insights %}<li>{{ ins|clean }}</li>{% endfor %}</ul>
+      {% elif w.type == 'top_fixes' %}
+        <ul>
+          {% for f in item.top_fixes %}
+            <li><strong>[{{ f.severity|upper }}]</strong> {{ f.title|clean }} ({{ f.difficulty }})</li>
+          {% else %}
+            <li>No matching fixes.</li>
+          {% endfor %}
+        </ul>
+      {% elif w.type == 'severity_chart' %}
+        <table>
+          <thead><tr><th>Severity</th><th>Pass</th><th>Fail</th><th>Unknown</th></tr></thead>
+          <tbody>
+            {% for sev in ['critical', 'high', 'medium', 'low'] %}
+              {% set c = latest.severity_summary.get(sev, {}) %}
+              <tr>
+                <td>{{ sev|upper }}</td>
+                <td>{{ c.get('pass', 0) }}</td>
+                <td>{{ c.get('fail', 0) }}</td>
+                <td>{{ c.get('unknown', 0) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="chart-summary">Severity counts across all {{ latest.summary.total_checks }} checks.</p>
+      {% elif w.type == 'trend_line' %}
+        <p class="chart-summary">{{ item.trend_summary|clean }}</p>
+      {% elif w.type == 'findings_table' %}
+        <table>
+          <thead><tr><th>Rule</th><th>Title</th><th>Status</th><th>Severity</th></tr></thead>
+          <tbody>
+            {% for f in item.findings %}
+              <tr>
+                <td>{{ f.rule_id|clean }}</td>
+                <td>{{ f.title|clean }}</td>
+                <td><span class="badge status-{{ f.status }}">{{ f.status }}</span></td>
+                <td><span class="badge sev-{{ f.severity }}">{{ f.severity }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </section>
+  {% endfor %}
+{% endif %}
+{% endblock %}
