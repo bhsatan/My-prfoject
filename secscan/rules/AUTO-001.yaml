@@ -27,6 +27,6 @@ how_to_fix:
     - "SDDM (KDE): Edit /etc/sddm.conf and remove or comment out the 'User=' line under [Autologin]."
     - "After editing, restart the display manager: sudo systemctl restart gdm3  (or lightdm / sddm)."
 difficulty: "easy"
-source: >
-  Microsoft – How to turn on automatic logon:
-  https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon
+source:
+  windows: "Microsoft – How to turn on automatic logon: https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon"
+  linux: "GNOME System Administration Guide – Configure automatic login: https://help.gnome.org/admin/system-admin-guide/stable/login-automatic.html.en"

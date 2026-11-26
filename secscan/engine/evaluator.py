@@ -148,6 +148,9 @@ def _resolve_fact_path(fact_path: str, facts: dict[str, Any]) -> Any:
 
     for segment in segments:
         if not isinstance(current, dict) or segment not in current:
+            # Hand back a collector's error dict so its message is reported
+            if isinstance(current, dict) and "error" in current:
+                return current
             return _MISSING
         current = current[segment]
 
@@ -212,6 +215,6 @@ def _make_finding(
         why_it_matters=rule.why_it_matters,
         how_to_fix=fix_steps,
         difficulty=rule.difficulty,
-        source=rule.source,
+        source=(rule.source.get(platform, "") if isinstance(rule.source, dict) else rule.source),
         detail=detail,
     )

@@ -19,11 +19,12 @@ how_to_fix:
     - "Click 'Firewall & network protection'."
     - "For each network (Domain, Private, and Public), click it and make sure the firewall is turned ON."
   linux:
-    - "Open a terminal."
-    - "If ufw is installed, run: sudo ufw enable"
-    - "If firewalld is installed, run: sudo systemctl enable --now firewalld"
-    - "Verify by running: sudo ufw status   or   sudo firewall-cmd --state"
+    - 'Check which firewall you have. On Debian, Ubuntu or Kali you can install ufw: sudo apt install ufw'
+    - 'If you connect over SSH, first find your active SSH listening port: sudo ss -tlnp | grep ssh   (or sudo sshd -T | grep "^port ")'
+    - 'Allow that exact TCP port before enabling ufw (e.g. for port 22: sudo ufw allow 22/tcp), and make sure you have console/recovery access in case of a mistake.'
+    - 'Enable ufw: sudo ufw enable   then test logging in from a second SSH connection before closing your current session, and verify: sudo ufw status verbose'
+    - 'If you use firewalld instead: sudo systemctl enable --now firewalld   then verify: sudo firewall-cmd --state'
 difficulty: "easy"
-source: >
-  Microsoft – Windows Defender Firewall overview:
-  https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/
+source:
+  windows: "Microsoft – Windows Defender Firewall overview: https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/"
+  linux: "Ubuntu Server documentation – Firewall: https://documentation.ubuntu.com/server/how-to/security/firewalls/"

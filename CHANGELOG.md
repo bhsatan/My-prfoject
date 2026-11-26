@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- SSH: first value wins and `Include` is followed, matching sshd; an unreadable config is `unknown`.
+- Firewall: a disabled ufw no longer passes because its service is active.
+- Password policy: reads `pwquality.conf` and `faillock.conf`, and ignores commented PAM lines.
+- Network: detects `*` and interface-scoped wildcard listeners.
+- Collector error messages now appear in findings.
+- Linux fix steps no longer risk lockout; rules can cite a source per platform.
+
 ### Added
 - Core rule engine with YAML rule loader, evaluator (8 operators), and dot-notation fact-path resolution.
 - Scorer with 0-100 weighted posture score, letter grades (A–F), and ranked finding output.

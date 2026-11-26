@@ -55,7 +55,7 @@ class Rule:
     why_it_matters: str
     how_to_fix: dict[str, list[str]]  # {"windows": [...], "linux": [...]}
     difficulty: str  # "easy" | "medium" | "hard"
-    source: str
+    source: str | dict[str, str]  # one for all, or per platform
 
 
 # ---------------------------------------------------------------------------

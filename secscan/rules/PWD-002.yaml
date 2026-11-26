@@ -20,13 +20,15 @@ how_to_fix:
     - "Double-click 'Account lockout threshold' and set it to 5 (or your preferred limit)."
     - "Windows will suggest values for lockout duration and reset counter — accept the defaults or adjust as needed."
   linux:
-    - "Open a terminal and edit the PAM authentication configuration."
-    - "On Debian/Ubuntu: sudo nano /etc/pam.d/common-auth"
-    - "On Fedora/RHEL: sudo nano /etc/pam.d/system-auth"
-    - "Add this line before other auth rules: auth required pam_faillock.so preauth deny=5 unlock_time=900"
-    - "And add after the pam_unix.so line: auth required pam_faillock.so authfail deny=5 unlock_time=900"
-    - "This locks accounts for 15 minutes after 5 failed attempts."
+    - 'WARNING: a mistake in PAM files can block all logins. Open a root shell (sudo -i), keep it open, and back up the files you edit.'
+    - 'Fedora/RHEL: sudo authselect enable-feature with-faillock'
+    - 'Debian/Ubuntu/Kali: in /etc/pam.d/common-auth add before the first authentication provider (e.g. pam_unix): auth required pam_faillock.so preauth'
+    - 'Place auth [default=die] pam_faillock.so authfail after all authentication providers (such as pam_unix and pam_sss) so it runs only when every provider fails.'
+    - 'Recalculate the [success=N ...] skip count on each provider line (for example pam_unix and pam_sss) so a successful login jumps past all remaining providers AND the authfail line; otherwise valid passwords will be rejected.'
+    - 'In /etc/pam.d/common-account add: account required pam_faillock.so'
+    - 'In /etc/security/faillock.conf set: deny = 5 and unlock_time = 900'
+    - 'Test a login in a second terminal before closing the root shell.'
 difficulty: "easy"
-source: >
-  Microsoft – Account Lockout Threshold:
-  https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/account-lockout-threshold
+source:
+  windows: "Microsoft – Account Lockout Threshold: https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/account-lockout-threshold"
+  linux: "pam_faillock manual: https://man7.org/linux/man-pages/man8/pam_faillock.8.html"

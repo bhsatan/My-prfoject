@@ -25,6 +25,6 @@ how_to_fix:
     - "Review the members listed. Remove anyone who does not need sudo access: sudo deluser USERNAME sudo"
     - "Verify the change: getent group sudo"
 difficulty: "medium"
-source: >
-  Microsoft – Principle of Least Privilege:
-  https://learn.microsoft.com/en-us/entra/identity-platform/secure-least-privileged-access
+source:
+  windows: "Microsoft – Principle of Least Privilege: https://learn.microsoft.com/en-us/entra/identity-platform/secure-least-privileged-access"
+  linux: "sudoers manual: https://www.sudo.ws/docs/man/sudoers.man/"

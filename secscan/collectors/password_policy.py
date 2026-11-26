@@ -1,12 +1,12 @@
 """Password and lockout policy collector.
 
 Windows: uses ``net accounts``.
-Linux:   reads ``/etc/login.defs`` and PAM config files.
+Linux:   reads PAM config files, pwquality.conf and faillock.conf.
 """
 
 from __future__ import annotations
 
-import contextlib
+import glob
 import logging
 import re
 from typing import Any
@@ -38,9 +38,12 @@ class PasswordPolicyCollector(Collector):
         if current == "windows":
             return [{"type": "command", "detail": "net accounts"}]
         return [
-            {"type": "file_read", "detail": "/etc/login.defs"},
             {"type": "file_read", "detail": "/etc/pam.d/common-password"},
             {"type": "file_read", "detail": "/etc/pam.d/system-auth"},
+            {"type": "file_read", "detail": "/etc/pam.d/common-auth"},
+            {"type": "file_read", "detail": "/etc/security/pwquality.conf"},
+            {"type": "file_read", "detail": "/etc/security/pwquality.conf.d/*.conf"},
+            {"type": "file_read", "detail": "/etc/security/faillock.conf"},
         ]
 
     def _collect_windows(self) -> dict[str, Any]:
@@ -74,57 +77,156 @@ class PasswordPolicyCollector(Collector):
         return {"password_policy": facts}
 
     def _collect_linux(self) -> dict[str, Any]:
-        facts: dict[str, Any] = {}
+        password = self._pam_lines(
+            ("/etc/pam.d/common-password", "/etc/pam.d/system-auth"), "password"
+        )
+        auth = self._pam_lines(("/etc/pam.d/common-auth", "/etc/pam.d/system-auth"), "auth")
 
-        # --- /etc/login.defs ---
-        try:
-            with open("/etc/login.defs", encoding="utf-8") as fh:
-                for line in fh:
-                    stripped = line.strip()
-                    if stripped.startswith("#") or not stripped:
-                        continue
-                    parts = stripped.split()
-                    if len(parts) >= 2 and parts[0] == "PASS_MIN_LEN":
-                        with contextlib.suppress(ValueError):
-                            facts["min_length"] = int(parts[1])
-        except OSError:
-            pass
+        # None means "could not determine" and is reported as unknown
+        min_length = None if password is None else self._min_length(password)
+        threshold = None if auth is None else self._lockout_threshold(auth)
 
-        # --- PAM config (pam_pwquality / pam_cracklib for minlen) ---
-        pam_paths = ["/etc/pam.d/common-password", "/etc/pam.d/system-auth"]
-        for pam_path in pam_paths:
+        lockout = {None: "unknown", 0: "not configured"}.get(
+            threshold, f"after {threshold} attempts"
+        )
+        length = "unknown" if min_length is None else min_length
+
+        return {
+            "password_policy": {
+                "min_length": min_length,
+                "lockout_threshold": threshold,
+                "detail": f"Min length: {length}; Lockout: {lockout}",
+            },
+        }
+
+    @staticmethod
+    def _pam_lines(paths: tuple[str, ...], kind: str) -> list[str] | None:
+        """Active (uncommented) PAM lines of one type, or None if unreadable."""
+        lines: list[str] = []
+        readable = False
+        for path in paths:
             try:
-                with open(pam_path, encoding="utf-8") as fh:
+                with open(path, encoding="utf-8") as fh:
                     for line in fh:
-                        if "pam_pwquality" in line or "pam_cracklib" in line:
-                            match = re.search(r"minlen=(\d+)", line)
-                            if match:
-                                facts["min_length"] = int(match.group(1))
+                        text = line.split("#", 1)[0].strip()
+                        if text.lstrip("-").startswith(kind):
+                            lines.append(text)
+                readable = True
             except OSError:
                 continue
+        return lines if readable else None
 
-        # --- PAM faillock for lockout ---
-        pam_auth_paths = ["/etc/pam.d/common-auth", "/etc/pam.d/system-auth"]
-        for pam_path in pam_auth_paths:
-            try:
-                with open(pam_path, encoding="utf-8") as fh:
-                    for line in fh:
-                        if "pam_faillock" in line or "pam_tally2" in line:
-                            match = re.search(r"deny=(\d+)", line)
-                            if match:
-                                facts["lockout_threshold"] = int(match.group(1))
-            except OSError:
+    def _pwquality_paths(self) -> list[str]:
+        """Return pwquality config paths in libpwquality precedence order.
+
+        Sorted drop-ins are read before ``/etc/security/pwquality.conf`` so
+        that ``_read_setting`` (last match wins) matches libpwquality
+        precedence when the main file is checked last.
+        """
+        return sorted(glob.glob("/etc/security/pwquality.conf.d/*.conf")) + [
+            "/etc/security/pwquality.conf"
+        ]
+
+    def _is_pwquality_enforcing(self, matching: list[str]) -> bool | None:
+        """Return True if pam_pwquality enforces, False if disabled, None if unknown."""
+        for line in matching:
+            if match := re.search(r"\benforcing=(-?\d+)", line):
+                return int(match.group(1)) != 0
+            if re.search(r"\benforcing=\S+", line):
+                return None
+
+        configured, err = self._read_setting(
+            self._pwquality_paths(), "enforcing", allow_signed=True
+        )
+        if err is not None:
+            return None
+        # libpwquality defaults to enforcing=1 when omitted
+        return True if configured is None else configured != 0
+
+    def _min_length(self, lines: list[str]) -> int | None:
+        # Module name -> its built-in default minimum length
+        saw_disabled_pwquality = False
+        for module, default in (("pam_pwquality", 8), ("pam_cracklib", 9), ("pam_unix", 6)):
+            matching = [line for line in lines if module in line]
+            if not matching:
                 continue
 
-        # Default lockout_threshold to 0 if not found
-        facts.setdefault("lockout_threshold", 0)
-        # Default min_length if not found anywhere
-        facts.setdefault("min_length", 5)  # login.defs default on many distros
+            if module == "pam_pwquality":
+                enforcing = self._is_pwquality_enforcing(matching)
+                if enforcing is None:
+                    return None
+                if not enforcing:
+                    saw_disabled_pwquality = True
+                    continue
 
-        parts = []
-        parts.append(f"Min length: {facts['min_length']}")
-        val = facts["lockout_threshold"]
-        parts.append(f"Lockout: {'not configured' if val == 0 else f'after {val} attempts'}")
-        facts["detail"] = "; ".join(parts)
+            # A module argument overrides the config file
+            for line in matching:
+                if match := re.search(r"\bminlen=(\d+)", line):
+                    return int(match.group(1))
 
-        return {"password_policy": facts}
+            if module == "pam_pwquality":
+                configured, err = self._read_setting(self._pwquality_paths(), "minlen")
+                if err is not None:
+                    return None
+                return default if configured is None else configured
+            return default
+
+        return None if saw_disabled_pwquality else 0
+
+    def _lockout_threshold(self, lines: list[str]) -> int | None:
+        # pam_faillock only counts failures if an "authfail" line is present
+        faillock = [line for line in lines if "pam_faillock" in line]
+        if any("authfail" in line for line in faillock):
+            for line in faillock:
+                if match := re.search(r"\bdeny=(\d+)", line):
+                    return int(match.group(1))
+
+            # Resolve conf= from applicable authfail or preauth line
+            conf_path = "/etc/security/faillock.conf"
+            for target in ("authfail", "preauth"):
+                found = False
+                for line in faillock:
+                    if target in line and (match := re.search(r"\bconf=(\S+)", line)):
+                        conf_path = match.group(1)
+                        found = True
+                        break
+                if found:
+                    break
+
+            configured, err = self._read_setting([conf_path], "deny")
+            if err is not None:
+                return None
+            return 3 if configured is None else configured
+
+        for line in lines:
+            if "pam_tally2" in line and (match := re.search(r"\bdeny=(\d+)", line)):
+                return int(match.group(1))
+        return 0
+
+    @staticmethod
+    def _read_setting(
+        paths: list[str],
+        key: str,
+        *,
+        allow_signed: bool = False,
+    ) -> tuple[int | None, str | None]:
+        """Last integer value of ``key = N`` across the given config files.
+
+        Returns ``(value, error_message)``.  Genuinely missing files
+        (``FileNotFoundError``) are skipped; other ``OSError`` failures
+        (e.g. ``PermissionError``) return ``(None, error_message)`` so callers
+        can report ``unknown`` instead of assuming defaults.
+        """
+        num_pattern = r"-?\d+" if allow_signed else r"\d+"
+        value = None
+        for path in paths:
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    for line in fh:
+                        if match := re.match(rf"\s*{key}\s*=\s*({num_pattern})", line):
+                            value = int(match.group(1))
+            except FileNotFoundError:
+                continue
+            except OSError as exc:
+                return None, f"Cannot read {path}: {exc}"
+        return value, None
