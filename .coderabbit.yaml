@@ -22,3 +22,8 @@ reviews:
         user confirmation.
     - path: "tests/**"
       instructions: "Check that tests use mocked facts and run on any OS."
+    - path: ".github/workflows/**"
+      instructions: >
+        Verify every action uses a pinned 40-character commit SHA, permissions
+        follow least privilege, persist-credentials is false on checkout, and no
+        untrusted context values are interpolated into run steps.
