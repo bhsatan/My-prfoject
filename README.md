@@ -20,8 +20,8 @@ SecScan inspects your local machine **read-only**, evaluates it against plain-la
 
 ```bash
 # 1. Clone and enter the repository
-git clone https://github.com/YOUR_USERNAME/secscan.git
-cd secscan
+git clone https://github.com/bhsatan/Sescan.git
+cd Sescan
 
 # 2. Create a virtual environment (Python 3.11+)
 python -m venv .venv
@@ -47,14 +47,25 @@ secscan scan --yes
 
 ### Updating SecScan
 
-SecScan has no built-in auto-updater. Check the [GitHub Releases](https://github.com/bhsatan/Sescan/releases) page and update manually:
+SecScan has no built-in updater, never uses the network itself, and is updated manually from the [Sescan repository](https://github.com/bhsatan/Sescan).
+
+From an existing checkout (run one command per line so it works in both Linux shells and Windows PowerShell 5.1):
 
 ```bash
-# From a SecScan checkout (change to the SecScan directory first):
-cd /path/to/secscan && git pull && pip install -e .
+cd /path/to/Sescan
+git fetch origin
+git log HEAD..origin/main --oneline
+git diff HEAD..origin/main
+git pull
+pip install -e .
+```
 
-# Or from anywhere:
-pip install --upgrade --force-reinstall git+https://github.com/bhsatan/Sescan.git
+> **Review changes first:** Read the `git log` and `git diff` output before running `pip install -e .`, because reinstalling runs the newly pulled code on your machine.
+
+If you are not installing from a local checkout, pin a specific commit or tag rather than an unpinned branch URL (an unpinned install fetches whatever is currently on the default branch):
+
+```bash
+pip install --upgrade --force-reinstall "git+https://github.com/bhsatan/Sescan.git@<commit-or-tag>"
 ```
 
 ---
