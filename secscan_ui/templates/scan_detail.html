@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Scan {{ report.scan_id }} — SecScan UI{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1>Scan {{ report.scan_id|clean }}</h1>
+  <p>
+    <strong>Score:</strong> {{ report.score }}/100 (Grade {{ report.grade }}) ·
+    <strong>OS:</strong> {{ report.os|upper }} ·
+    <strong>Time:</strong> {{ report.scan_time_iso|clean }}
+  </p>
+
+  <form class="filter-bar" method="get" action="{{ url_for('scan_detail', scan_id=report.scan_id) }}">
+    <label>Severity
+      <select name="severity">
+        <option value="">All</option>
+        {% for s in ['critical', 'high', 'medium', 'low'] %}
+          <option value="{{ s }}" {% if filters.severity == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Status
+      <select name="status">
+        <option value="">All</option>
+        {% for st in ['fail', 'unknown', 'pass'] %}
+          <option value="{{ st }}" {% if filters.status == st %}selected{% endif %}>{{ st }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Difficulty
+      <select name="difficulty">
+        <option value="">All</option>
+        {% for d in ['easy', 'medium', 'hard'] %}
+          <option value="{{ d }}" {% if filters.difficulty == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Category
+      <select name="category">
+        <option value="">All</option>
+        {% for c in categories %}
+          <option value="{{ c }}" {% if filters.category == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Sort by
+      <select name="sort">
+        <option value="status" {% if filters.sort == 'status' %}selected{% endif %}>Status &amp; Severity</option>
+        <option value="severity" {% if filters.sort == 'severity' %}selected{% endif %}>Severity</option>
+        <option value="difficulty" {% if filters.sort == 'difficulty' %}selected{% endif %}>Difficulty</option>
+      </select>
+    </label>
+    <button type="submit">Apply</button>
+  </form>
+
+  {% for f in findings %}
+    <details class="finding is-{{ f.status }}">
+      <summary>
+        <span class="badge status-{{ f.status }}">{{ f.status }}</span>
+        <span class="badge sev-{{ f.severity }}">{{ f.severity }}</span>
+        <span>{{ f.title|clean }}</span>
+        <span class="chart-summary">({{ f.rule_id|clean }} · {{ f.difficulty }})</span>
+      </summary>
+      <div class="finding-body">
+        <p><strong>Detail:</strong> {{ f.detail|clean }}</p>
+        <p><strong>Why it matters:</strong> {{ f.why_it_matters|clean }}</p>
+        {% if f.how_to_fix %}
+          <p><strong>How to fix ({{ report.os|upper }}):</strong></p>
+          <ol>
+            {% for step in f.how_to_fix %}
+              <li>{{ step|clean }}</li>
+            {% endfor %}
+          </ol>
+        {% endif %}
+        <p class="chart-summary">Difficulty: {{ f.difficulty }} · Source: {{ f.source|clean }}</p>
+      </div>
+    </details>
+  {% else %}
+    <p>No findings match the current filters.</p>
+  {% endfor %}
+</section>
+
+{% if report.not_checked %}
+  <section class="card">
+    <h2>What Could Not Be Checked</h2>
+    <ul>
+      {% for item in report.not_checked %}
+        <li><strong>{{ item.rule_id|clean }} ({{ item.title|clean }})</strong>: {{ item.reason|clean }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+{% endblock %}
