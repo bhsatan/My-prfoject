@@ -288,7 +288,18 @@ class TestDashboardStore:
             validate_report_dict(bad_enum)
 
     def test_rejects_ftp_protocol_relative_and_unhashable_filter(self) -> None:
-        for bad_title in ("ftp://files.example/a", "//evil.example/x"):
+        # Ordinary words ending in "data:" must be allowed
+        ok = validate_dashboard_dict(
+            {
+                "schema_version": "1.0",
+                "id": "meta-ok",
+                "name": "Metadata: Overview",
+                "widgets": [{"type": "score_gauge", "title": "Score", "filters": {}}],
+            }
+        )
+        assert ok["name"] == "Metadata: Overview"
+
+        for bad_title in ("ftp://files.example/a", "//evil.example/x", "data:text/html,hi"):
             with pytest.raises(DashboardValidationError, match="HTML or URLs"):
                 validate_dashboard_dict(
                     {

@@ -38,7 +38,7 @@ VALID_WIDGET_TYPES = frozenset(
 
 DASHBOARD_ID_RE = re.compile(r"^[a-z0-9_-]{2,48}$")
 _URL_SCHEME_RE = re.compile(
-    r"(?:://|javascript:|data:|vbscript:|(?:^|\s)//)",
+    r"(?:://|\b(?:javascript|data|vbscript):|(?:^|\s)//)",
     re.IGNORECASE,
 )
 _HTML_TAG_RE = re.compile(r"[<>]")
