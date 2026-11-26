@@ -6,8 +6,8 @@
   <h1>Optional AI Assistant</h1>
   {% if not api_key_set %}
     <p>
-      <strong>Disabled by default.</strong> Set <code>SECSCAN_AI_API_KEY</code> (and use the
-      optional AI compose override if running in Docker) to preview redacted findings.
+      <strong>Disabled by default.</strong> Set <code>SECSCAN_AI_API_KEY</code> to preview
+      redacted findings.
     </p>
   {% elif not latest %}
     <p>No valid scans available to explain.</p>

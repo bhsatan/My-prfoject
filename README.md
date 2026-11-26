@@ -180,41 +180,32 @@ ruff format --check .
 
 ---
 
-## Web UI & Docker (v0.2)
+## Web UI (v0.2)
 
-### Why the Scanner Is Not in the Container
+SecScan includes an optional local-only Web UI (`secscan_ui`) that reads your v1 JSON reports **read-only** and displays scores, trends, plain-language insights, and step-by-step fixes in your browser. The UI never runs the scanner, never spawns subprocesses, and never modifies your host.
 
-SecScan splits **host scanning** from **report viewing**:
-- **Scanner (`secscan`)** runs natively on your Windows or Linux host because Windows checks (PowerShell, Registry, Defender, BitLocker) cannot run in a Linux container, and putting a scanner in a container would require `--privileged` or host mounts that weaken isolation.
-- **Web UI (`secscan_ui`)** runs inside a hardened, non-root, read-only Docker container that mounts `./reports` **read-only** (`:ro`) and listens only on `127.0.0.1:8080`.
-
-### 1. Run a Scan Natively
+### 1. Install the Optional UI Extra
 
 ```bash
-secscan scan --format json --output ./reports
+pip install -e ".[ui]"
 ```
 
-Report files are written with owner-only permissions (`0600` on Linux).
+*(The core scanner remains dependency-free beyond `PyYAML`.)*
 
-### 2. Configure `.env` for Report Permissions
-
-Create `.env` from `.env.example` and set `HOST_UID` and `HOST_GID` (Compose fails closed if unset):
-
-- **Linux:** Run `id -u` and `id -g`, and put those values in `.env` (e.g. `HOST_UID=1000`, `HOST_GID=1000`). This lets the container read your `0600` reports without loosening file permissions to world-readable.
-- **Docker Desktop on Windows:** Bind-mounted folders from Windows are owned by your WSL2 user inside the Linux VM (typically `HOST_UID=1000`, `HOST_GID=1000`).
-
-### 3. Start, View, and Clean Up
+### 2. Run a Scan and Start the Web UI
 
 ```bash
-# Resolve the python:3.12-slim digest first and place it in Dockerfile:
-docker buildx imagetools inspect python:3.12-slim
+# 1. Generate a v1 JSON report (saved to ./output by default)
+secscan scan --format json --output ./output
 
-# Start the Web UI on http://127.0.0.1:8080
-docker compose up -d --build
-
-# Stop and remove the container
-docker compose down
+# 2. Start the local Web UI (listens on http://127.0.0.1:8080)
+secscan ui --reports-dir ./output
 ```
+
+You can also run `python -m secscan_ui --reports-dir ./output`.
+
+- **Loopback only by default:** `secscan ui` binds to `127.0.0.1:8080` and refuses non-loopback addresses unless `--allow-remote` is explicitly passed (not recommended — the UI has no authentication).
+- **Non-privileged only by default:** Refuses to run as `root` or Windows `Administrator` unless `--allow-privileged` is passed.
 
 ## License
 

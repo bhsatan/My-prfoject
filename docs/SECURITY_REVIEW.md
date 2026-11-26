@@ -1,6 +1,6 @@
 # SecScan v0.2 Security Review
 
-This document tracks security findings and controls verified across the v0.2 Web UI and Docker packaging.
+This document tracks security findings and controls verified across the v0.2 native Web UI.
 
 | Finding / Control | Source | Severity | Status | Covering Test / Check |
 |---|---|---|---|---|
@@ -13,4 +13,4 @@ This document tracks security findings and controls verified across the v0.2 Web
 | Malicious declarative dashboard JSON rejection (no HTML/URLs/control chars) | Web Security Req. | Medium | Implemented | `test_malicious_dashboard_json_rejected` |
 | Request size cap (`64 KiB`) & per-IP rate limiting (`429`) | Web Security Req. | Medium | Implemented | `test_oversized_post_rejected`, `test_rate_limit_returns_429` |
 | Fail-closed non-localhost bind guard | Web Security Req. | High | Implemented | `test_non_localhost_bind_fails_closed` |
-| Hardened Docker container (`read_only`, `cap_drop: [ALL]`, `no-new-privileges`, `:ro` reports, `127.0.0.1` publish, fail-closed `HOST_UID`/`HOST_GID`) | Docker Security Req. | High | Implemented (pending live Docker daemon test) | `Dockerfile`, `docker-compose.yml`, CI `docker-smoke` job |
+| Native `secscan ui` safety guards (loopback default, `--allow-remote` opt-in, non-privileged default, world-readable reports warning) | Native UI Security Req. | High | Implemented & Tested | `tests/test_cli.py`, `tests/test_ui_frontend/test_web_ui.py` |
